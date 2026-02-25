@@ -21,7 +21,7 @@ header {
 }
 header .inner {
   max-width: 1100px;
-  margin: 0 auto;
+  margin: 0;
   padding: 0 20px;
   display: flex;
   align-items: center;
@@ -45,19 +45,35 @@ header .meta {
   font-size: 11px;
 }
 
+/* Marvin */
+.marvin-wrap {
+  background: #826eb4;
+  margin: -12px -10px 10px -10px;
+  padding: 0;
+  overflow: hidden;
+  line-height: 0;
+}
+.marvin-sidebar {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  margin: 20px auto 0;
+}
+
 /* Layout */
 .page {
   max-width: 1100px;
-  margin: 0 auto;
-  padding: 12px 20px;
+  margin: 0;
+  padding: 12px 0 12px 0;
   display: flex;
-  gap: 24px;
+  gap: 44px;
 }
 
 /* Sidebar */
 .sidebar {
-  width: 180px;
+  width: 200px;
   flex-shrink: 0;
+  padding: 0 10px;
 }
 .sidebar h3 {
   font-size: 11px;
@@ -348,6 +364,69 @@ footer {
 /* Hidden by filter */
 .hl.hidden { display: none; }
 
+/* Marvin CTA */
+.marvin-cta {
+  padding: 8px 12px 12px;
+  line-height: 1.2;
+  text-align: center;
+}
+.marvin-says {
+  font-family: Impact, 'Arial Black', sans-serif;
+  font-size: 16px;
+  color: rgba(255,255,255,0.8);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.marvin-says span {
+  font-size: 28px;
+  color: #fff;
+  display: block;
+  letter-spacing: 2px;
+  text-shadow: 2px 2px 0 #5a4a8a, -1px -1px 0 #5a4a8a;
+  transform: rotate(-2deg);
+  margin: 2px 0 8px;
+}
+.marvin-form {
+  display: flex;
+  gap: 4px;
+}
+.marvin-form input[type="email"] {
+  font-family: Verdana, Geneva, sans-serif;
+  font-size: 12px;
+  border: 2px solid rgba(255,255,255,0.5);
+  border-radius: 3px;
+  padding: 5px 8px;
+  flex: 1;
+  min-width: 0;
+  background: rgba(255,255,255,0.9);
+}
+.marvin-form input[type="email"]:focus {
+  outline: none;
+  border-color: #fff;
+  background: #fff;
+}
+.marvin-form button {
+  font-family: Impact, 'Arial Black', sans-serif;
+  font-size: 14px;
+  background: #fff;
+  color: #826eb4;
+  border: none;
+  border-radius: 3px;
+  padding: 5px 12px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.marvin-form button:hover { background: #f0e8ff; }
+.marvin-msg {
+  font-size: 13px;
+  margin-top: 6px;
+  color: #fff;
+  font-family: Impact, 'Arial Black', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 /* Responsive */
 @media (max-width: 700px) {
   .page { flex-direction: column; gap: 12px; }
@@ -363,7 +442,7 @@ footer {
 
 <header>
   <div class="inner">
-    <h1><a href="index.html">ai news</a> <span class="tagline">— Your AI news, served raw</span></h1>
+    <h1><a href="index.html">marvin ai news</a> <span class="tagline">— Your AI news, served raw</span></h1>
     <span class="meta">{{ total_headlines }} headlines &middot; {{ total_sources }} sources</span>
   </div>
 </header>
@@ -371,7 +450,27 @@ footer {
 <div class="page">
 
 <aside class="sidebar">
+  <div class="marvin-wrap">
+    <a href="team.html" title="???"><img src="logo-email.png" alt="Marvin" class="marvin-sidebar"></a>
+    <div class="marvin-cta">
+      <div class="marvin-says">Marvin says<br><span>subscribe</span></div>
+      <form id="digest-form" class="marvin-form" onsubmit="return submitDigest(event)">
+        <input type="email" id="digest-email" placeholder="email" required>
+        <button type="submit">go</button>
+      </form>
+      <div id="digest-msg" class="marvin-msg" style="display:none;"></div>
+    </div>
+  </div>
   <h3>{{ display_date }}</h3>
+
+  {% if sections %}
+  <div class="cat-nav" id="cat-nav">
+    <h3>Sections</h3>
+    {% for category, headlines in sections %}
+    <a href="#cat-{{ category|lower|replace(' & ', '-')|replace(' ', '-') }}">{{ category }} <span class="cnt">({{ headlines|length }})</span></a>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   {% for cal in calendars %}
   <div class="cal">
@@ -410,14 +509,6 @@ footer {
     <button class="fbtn-clear dr-reset" onclick="resetDateRange()">reset</button>
   </div>
 
-  {% if sections %}
-  <div class="cat-nav" id="cat-nav">
-    <h3>Sections</h3>
-    {% for category, headlines in sections %}
-    <a href="#cat-{{ category|lower|replace(' & ', '-')|replace(' ', '-') }}">{{ category }} <span class="cnt">({{ headlines|length }})</span></a>
-    {% endfor %}
-  </div>
-  {% endif %}
 </aside>
 
 <div class="main">
@@ -614,6 +705,26 @@ footer {
     return d.innerHTML;
   }
 })();
+
+function submitDigest(e) {
+  e.preventDefault();
+  var email = document.getElementById('digest-email').value;
+  var form = document.getElementById('digest-form');
+  var msg = document.getElementById('digest-msg');
+  fetch('/api/subscribe', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email: email})
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    form.style.display = 'none';
+    msg.style.display = '';
+    msg.textContent = data.ok ? 'done.' : (data.error || 'error');
+  }).catch(function() {
+    msg.style.display = '';
+    msg.textContent = 'error — try again';
+  });
+  return false;
+}
 </script>
 </body>
 </html>

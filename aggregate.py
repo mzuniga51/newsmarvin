@@ -423,6 +423,19 @@ def render_page(sections, headlines, display_date, filename, calendars,
     output_dir = PROJECT_DIR / "output"
     output_dir.mkdir(exist_ok=True)
     (output_dir / filename).write_text(html)
+
+    # Copy static assets to output if missing
+    import shutil
+    for asset in ("logo.png", "logo-sm.png", "logo-email.png", "team.html",
+                   "team-marvin.jpg", "team-oreo.jpg", "team-papato.jpg",
+                   "team-bella.jpg", "team-panda.jpg", "team-choco.jpg",
+                   "kill-bill.mp3", "marvin-motivation.mp4",
+                   "team-panko.jpg"):
+        src = PROJECT_DIR / "static" / asset
+        dst = output_dir / asset
+        if src.exists():
+            shutil.copy2(src, dst)
+
     return output_dir / filename
 
 
@@ -453,23 +466,22 @@ def main():
     # Sort all headlines by published time (newest first) for JSON embed
     all_sorted = sorted(headlines, key=lambda h: h["published"], reverse=True)
 
-    # Render today
-    if today_cr in by_day:
-        today_hl = by_day[today_cr]
-        sections = build_sections(today_hl)
-        cals = build_calendars(sorted_days, today_cr, today_cr)
-        dt = datetime.strptime(today_cr, "%Y-%m-%d")
-        display = f"Today, {dt.strftime('%B %d')}"
-        path = render_page(sections, today_hl, display, "index.html", cals,
-                           global_companies, all_sorted)
-        print(f"  {path} ({len(today_hl)} headlines)")
-    else:
-        cals = build_calendars(sorted_days, today_cr, today_cr)
-        dt = datetime.strptime(today_cr, "%Y-%m-%d")
-        display = f"Today, {dt.strftime('%B %d')}"
-        render_page([], [], display, "index.html", cals, global_companies,
-                    all_sorted)
-        print("  index.html (0 headlines)")
+    # Render index — rolling 24h window
+    now_cr = datetime.now(CR_TZ)
+    cutoff_24h = now_cr - timedelta(hours=24)
+    recent_hl = [h for h in headlines if h["published"].astimezone(CR_TZ) >= cutoff_24h]
+    # Ensure time_str is set for recent headlines
+    for h in recent_hl:
+        if "time_str" not in h:
+            local = h["published"].astimezone(CR_TZ)
+            h["time_str"] = local.strftime("%H:%M")
+            h["date_str"] = local.strftime("%b %d")
+    sections = build_sections(recent_hl)
+    cals = build_calendars(sorted_days, today_cr, today_cr)
+    display = f"Last 24 hours"
+    path = render_page(sections, recent_hl, display, "index.html", cals,
+                       global_companies, all_sorted)
+    print(f"  {path} ({len(recent_hl)} headlines)")
 
     # Render archive days
     for day in sorted_days:

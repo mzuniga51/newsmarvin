@@ -1,0 +1,6 @@
+name = "newsmarvin"
+compatibility_date = "2024-12-01"
+
+[[kv_namespaces]]
+binding = "NEWSMARVIN_SUBSCRIBERS"
+id = "9a4d8965976e4a619e97ce31c7ba842b"

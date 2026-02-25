@@ -12,10 +12,16 @@ FEEDS = {
     # --- Tier 0: Official Company Blogs (straight from the source) ---
     "OpenAI": "https://openai.com/news/rss.xml",
     "Google DeepMind": "https://deepmind.google/blog/rss.xml",
+    "Google Research": "https://research.google/blog/rss/",
     "NVIDIA Blog": "https://blogs.nvidia.com/feed/",
     "Meta Research": "https://research.facebook.com/feed/",
     "Microsoft Research": "https://www.microsoft.com/en-us/research/feed/",
+    "Apple ML Research": "https://machinelearning.apple.com/rss.xml",
     "Hugging Face": "https://huggingface.co/blog/feed.xml",
+    "Stability AI": "https://stability.ai/news/rss.xml",
+    "Databricks": "https://www.databricks.com/feed",
+    "Palantir": "https://blog.palantir.com/feed",
+    "Shield AI": "https://shield.ai/feed/",
 
     # --- Tier 1: AI-Focused News Sites (always relevant) ---
     "TechCrunch AI": "https://techcrunch.com/category/artificial-intelligence/feed/",
@@ -30,12 +36,53 @@ FEEDS = {
     "Futurism AI": "https://futurism.com/categories/ai-artificial-intelligence/feed",
     "ZDNet AI": "https://www.zdnet.com/topic/artificial-intelligence/rss.xml",
     "Import AI": "https://importai.substack.com/feed",
+    "The Gradient": "https://thegradient.pub/rss/",
+
+    # --- Tier 1.5: AI Leaders & Influential Newsletters ---
+    "Sam Altman": "https://blog.samaltman.com/posts.atom",
+    "Andrej Karpathy": "https://karpathy.bearblog.dev/feed/",
+    "One Useful Thing": "https://www.oneusefulthing.org/feed",
+    "Interconnects": "https://www.interconnects.ai/feed",
+    "Ahead of AI": "https://magazine.sebastianraschka.com/feed",
+    "Exponential View": "https://www.exponentialview.co/feed",
+    "Benedict Evans": "https://www.ben-evans.com/benedictevans?format=rss",
+    "Simon Willison": "https://simonwillison.net/atom/everything/",
+
+    # --- Tier 1.6: Universities & Research Labs ---
+    "MIT News AI": "https://news.mit.edu/topic/mitartificial-intelligence2-rss.xml",
+    "BAIR Blog": "https://bair.berkeley.edu/blog/feed.xml",
+    "CMU SCS": "https://www.cs.cmu.edu/news/feed",
+    "Oxford Internet Institute": "https://www.oii.ox.ac.uk/feed/",
+    "UW Allen School": "https://news.cs.washington.edu/feed/",
+    "Cambridge CST": "https://www.cst.cam.ac.uk/news/feed",
+    "Vector Institute": "https://vectorinstitute.ai/feed/",
+
+    # --- Tier 1.7: Scientific Journals & Media ---
+    "Nature": "https://www.nature.com/nature.rss",
+    "Nature Machine Intelligence": "https://www.nature.com/natmachintell.rss",
+    "Science": "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science",
+    "Scientific American": "http://rss.sciam.com/ScientificAmerican-Global",
+    "New Scientist": "https://www.newscientist.com/feed/home/",
+    "IEEE Spectrum": "https://spectrum.ieee.org/feeds/feed.rss",
+
+    # --- Tier 1.8: Defense & Consulting ---
+    "McKinsey": "https://www.mckinsey.com/insights/rss.aspx",
+    "Lockheed Martin": "https://news.lockheedmartin.com/news-releases?pagetemplate=rss",
+    "Northrop Grumman": "https://investor.northropgrumman.com/rss/news-releases.xml",
+    "RTX": "https://www.rtx.com/rss-feeds/news",
+    "L3Harris": "https://www.l3harris.com/feeds/newsroom/rss.xml",
+    "Leidos": "https://investors.leidos.com/rss/news-releases.xml",
+    "SAIC": "https://investors.saic.com/rss/news-releases.xml",
+    "Boeing": "https://boeing.mediaroom.com/news-releases-statements?pagetemplate=rss",
 
     # --- Tier 2: Traditional Media & Finance (filtered for AI keywords) ---
+    "Axios": "https://api.axios.com/feed/",
     "NYT Tech": "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
     "WSJ Tech": "https://feeds.a.dj.com/rss/RSSWSJD.xml",
     "BBC Tech": "https://feeds.bbci.co.uk/news/technology/rss.xml",
     "CNN Tech": "http://rss.cnn.com/rss/money_technology.rss",
+    "Washington Post": "https://feeds.washingtonpost.com/rss/business/technology",
+    "Financial Times": "https://www.ft.com/technology?format=rss",
     "Guardian Tech": "https://www.theguardian.com/technology/rss",
     "Fortune": "https://fortune.com/feed/fortune-feeds/?id=3230629",
     "Bloomberg Tech": "https://feeds.bloomberg.com/technology/news.rss",
@@ -51,11 +98,23 @@ FEEDS = {
 # (they publish lots of non-AI content)
 TIER2_SOURCES = {
     # Traditional media
-    "NYT Tech", "WSJ Tech", "BBC Tech", "CNN Tech",
+    "Axios", "NYT Tech", "WSJ Tech", "BBC Tech", "CNN Tech",
+    "Washington Post", "Financial Times",
     "Guardian Tech", "Fortune",
     "Bloomberg Tech", "CNBC Tech",
     # Mixed-content tech sites
     "Meta Research", "ZDNet AI", "MIT Tech Review", "Ars Technica",
+    "Google Research", "Apple ML Research", "Databricks",
+    # Defense & consulting (publish mostly non-AI)
+    "McKinsey", "Palantir", "Shield AI",
+    "Lockheed Martin", "Northrop Grumman", "RTX", "L3Harris",
+    "Leidos", "SAIC", "Boeing",
+    # Scientific journals (broad science, filter for AI)
+    "Nature", "Science", "Scientific American", "New Scientist",
+    "IEEE Spectrum",
+    # Universities (general CS/dept news)
+    "MIT News AI", "CMU SCS", "Oxford Internet Institute",
+    "UW Allen School", "Cambridge CST", "Vector Institute",
     # Community
     "Hacker News AI", "Google News AI", "Google News Vibe Coding",
 }
@@ -71,6 +130,8 @@ AI_KEYWORDS = [
     "natural language processing", "nlp", "ai model", "ai agent",
     "ai tool", "ai safety", "ai regulation", "ai chip",
     "vibe coding", "vibecoding", "generative coding",
+    "autonomous", "robotics", "robot", "drone",
+    "data science", "predictive model", "transformer",
 ]
 
 # ---------------------------------------------------------------------------
