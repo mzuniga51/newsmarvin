@@ -505,10 +505,10 @@ body {
     <div class="finale-header">
       <h1>The Dev Team</h1>
       <p>six pomeranians. one english setter. one mission. zero documentation.</p>
-      <div style="margin-top:20px;cursor:pointer;" id="video-trigger">
-        <span class="blink-btn">Don't Miss the Company's Motivational Video</span>
+      <div style="margin-top:20px;">
+        <span class="blink-btn">The Company's Motivational Video</span>
       </div>
-      <div id="marvin-video" style="display:none;margin-top:16px;">
+      <div id="marvin-video" style="margin-top:16px;">
         <video id="marvin-vid" width="320" style="border:3px solid #d4a017;box-shadow:0 0 30px rgba(212,160,23,0.3);" controls>
           <source src="marvin-motivation.mp4" type="video/mp4">
         </video>
@@ -621,6 +621,12 @@ function showSlide(index) {
     members.forEach((m, i) => {
       setTimeout(() => m.classList.add('visible'), 200 + i * 150);
     });
+
+    // Auto-play motivational video
+    setTimeout(() => {
+      music.pause();
+      document.getElementById('marvin-vid').play().catch(() => {});
+    }, 500);
     return;
   }
 
@@ -678,20 +684,6 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Motivational video toggle
-document.getElementById('video-trigger').addEventListener('click', (e) => {
-  e.stopPropagation();
-  const container = document.getElementById('marvin-video');
-  const vid = document.getElementById('marvin-vid');
-  if (container.style.display === 'none') {
-    container.style.display = 'block';
-    music.pause();
-    vid.play();
-  } else {
-    container.style.display = 'none';
-    vid.pause();
-  }
-});
 </script>
 
 </body>
