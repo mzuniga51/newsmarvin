@@ -121,6 +121,10 @@ _STOP = {
     # AI-domain stop words (too common in every headline to be useful for dedup)
     "ai", "artificial", "intelligence", "model", "models",
     "tech", "technology", "data", "digital",
+    # Company/product names: tracked by entity system, not useful for story differentiation
+    "anthropic", "claude", "openai", "chatgpt", "gpt", "google", "gemini",
+    "meta", "microsoft", "apple", "amazon", "nvidia", "deepmind",
+    "code", "llm", "chatbot", "copilot",
 }
 
 

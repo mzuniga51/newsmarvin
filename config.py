@@ -93,8 +93,8 @@ FEEDS = {
     "Hacker News AI": "https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT+OR+Claude+OR+Anthropic&points=10",
     "Google News AI": "https://news.google.com/rss/search?q=artificial+intelligence&hl=en-US&gl=US&ceid=US:en",
     "Google News Vibe Coding": "https://news.google.com/rss/search?q=%22vibe+coding%22+OR+%22vibecoding%22+OR+%22generative+coding%22&hl=en-US&gl=US&ceid=US:en",
-    "Google News Anthropic": "https://news.google.com/rss/search?q=Anthropic+OR+Claude+AI&hl=en-US&gl=US&ceid=US:en",
-    "Google News OpenAI": "https://news.google.com/rss/search?q=OpenAI+OR+ChatGPT&hl=en-US&gl=US&ceid=US:en",
+    "Google News Anthropic": "https://news.google.com/rss/search?q=Anthropic+OR+%22Claude+AI%22+OR+%22Claude+Code%22&hl=en-US&gl=US&ceid=US:en",
+    "Google News OpenAI": "https://news.google.com/rss/search?q=OpenAI+OR+ChatGPT+OR+%22GPT-5%22&hl=en-US&gl=US&ceid=US:en",
 }
 
 # Sources that require AI keyword match in title to be included
