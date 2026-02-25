@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 from pathlib import Path
 
+import requests
 import feedparser
 from jinja2 import Environment, FileSystemLoader
 
@@ -241,9 +242,9 @@ def fetch_feeds():
     for source_name, feed_url in FEEDS.items():
         print(f"  {source_name}...", end=" ", flush=True)
         try:
-            feed = feedparser.parse(feed_url, request_headers={
-                "User-Agent": "AI-News-Aggregator/1.0"
-            })
+            resp = requests.get(feed_url, headers={"User-Agent": "AI-News-Aggregator/1.0"}, timeout=15)
+            resp.raise_for_status()
+            feed = feedparser.parse(resp.content)
             if feed.bozo and not feed.entries:
                 print(f"ERR: {feed.bozo_exception}")
                 continue
