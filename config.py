@@ -26,6 +26,7 @@ FEEDS = {
     # --- Tier 1: AI-Focused News Sites (always relevant) ---
     "TechCrunch AI": "https://techcrunch.com/category/artificial-intelligence/feed/",
     "The Verge AI": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
+    "VentureBeat AI": "https://venturebeat.com/category/ai/feed/",
     "Ars Technica": "https://feeds.arstechnica.com/arstechnica/technology-lab",
     "MIT Tech Review": "https://www.technologyreview.com/feed/",
     "The Register AI": "https://www.theregister.com/software/ai_ml/headlines.atom",
@@ -92,6 +93,8 @@ FEEDS = {
     "Hacker News AI": "https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT+OR+Claude+OR+Anthropic&points=10",
     "Google News AI": "https://news.google.com/rss/search?q=artificial+intelligence&hl=en-US&gl=US&ceid=US:en",
     "Google News Vibe Coding": "https://news.google.com/rss/search?q=%22vibe+coding%22+OR+%22vibecoding%22+OR+%22generative+coding%22&hl=en-US&gl=US&ceid=US:en",
+    "Google News Anthropic": "https://news.google.com/rss/search?q=Anthropic+OR+Claude+AI&hl=en-US&gl=US&ceid=US:en",
+    "Google News OpenAI": "https://news.google.com/rss/search?q=OpenAI+OR+ChatGPT&hl=en-US&gl=US&ceid=US:en",
 }
 
 # Sources that require AI keyword match in title to be included
