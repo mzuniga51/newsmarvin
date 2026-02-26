@@ -36,7 +36,7 @@ CF_ACCOUNT_ID = os.environ.get("CF_ACCOUNT_ID", "")
 CF_API_TOKEN = os.environ.get("CF_API_TOKEN", "")
 KV_NAMESPACE_ID = os.environ.get("KV_NAMESPACE_ID", "")
 
-FROM_EMAIL = "NewsMarvin <digest@mzuniga.com>"
+FROM_EMAIL = "Marvin AI News <morning@mzuniga.com>"
 BATCH_SIZE = 50  # Resend batch limit
 
 
@@ -92,10 +92,10 @@ def _html_escape(s):
 def build_email(sections, today_str, total_headlines, total_sources):
     """Build plain text and HTML email matching the website design."""
     display_date = datetime.strptime(today_str, "%Y-%m-%d").strftime("%b %d, %Y")
-    subject = f"NewsMarvin — {display_date}"
+    subject = f"Marvin AI News — {display_date}"
 
     # Plain text version
-    text_lines = [f"ai news — {display_date}", f"{total_headlines} headlines · {total_sources} sources", ""]
+    text_lines = [f"marvin ai news — {display_date}", f"{total_headlines} headlines · {total_sources} sources", ""]
 
     for cat_name, headlines in sections:
         text_lines.append(f"{cat_name} ({len(headlines)})")
@@ -111,13 +111,15 @@ def build_email(sections, today_str, total_headlines, total_sources):
 
     text_lines.append("—")
     text_lines.append("newsmarvin.com · Your AI news, served raw")
+    text_lines.append("")
+    text_lines.append("Unsubscribe: %%UNSUB_URL%%")
     text_body = "\n".join(text_lines)
 
     # HTML version
     logo_img = (
         f'<img src="{LOGO_URL}" '
-        f'alt="Marvin" width="200" '
-        f'style="display:block;margin:0 auto 16px;">'
+        f'alt="Marvin" width="60" height="60" '
+        f'style="display:inline-block;vertical-align:middle;border-radius:50%;">'
     )
 
     # Build sections
@@ -131,20 +133,20 @@ def build_email(sections, today_str, total_headlines, total_sources):
             title_esc = _html_escape(h["title"])
             source_esc = _html_escape(h["source"])
             rows.append(
-                f'<tr><td style="color:#999;font-size:14px;white-space:nowrap;'
-                f'vertical-align:baseline;padding:4px 10px 4px 0;font-family:Verdana,Geneva,sans-serif;">'
+                f'<tr><td style="color:#999;font-size:12px;white-space:nowrap;'
+                f'vertical-align:baseline;padding:3px 8px 3px 0;font-family:Verdana,Geneva,sans-serif;">'
                 f'{h["time_str"]}</td>'
-                f'<td style="padding:4px 0;font-size:15px;font-family:Verdana,Geneva,sans-serif;{weight}">'
+                f'<td style="padding:3px 0;font-size:13px;line-height:1.4;font-family:Verdana,Geneva,sans-serif;{weight}">'
                 f'<a href="{h["link"]}" style="color:#00c;text-decoration:none;" target="_blank">'
                 f'{title_esc}</a> '
-                f'<span style="color:#999;font-size:12px;white-space:nowrap;">'
+                f'<span style="color:#999;font-size:11px;white-space:nowrap;">'
                 f'({source_esc}{also})</span>'
                 f'</td></tr>'
             )
         sections_html.append(
             f'<div id="cat-{anchor}" style="margin:20px 0;">'
-            f'<div style="font-size:16px;font-weight:bold;color:#826eb4;'
-            f'padding:8px 0 6px;border-bottom:2px solid #826eb4;margin-bottom:8px;'
+            f'<div style="font-size:14px;font-weight:bold;color:#826eb4;'
+            f'padding:6px 0 4px;border-bottom:2px solid #826eb4;margin-bottom:6px;'
             f'font-family:Verdana,Geneva,sans-serif;">'
             f'{_html_escape(cat_name)} '
             f'<span style="color:#999;font-weight:normal;font-size:13px;">({len(headlines)})</span>'
@@ -163,17 +165,18 @@ def build_email(sections, today_str, total_headlines, total_sources):
 <div style="max-width:700px;margin:0 auto;">
 
 <!-- Header with Marvin -->
-<div style="background:#826eb4;padding:24px 20px;text-align:center;">
-{logo_img}
-<div style="color:#fff;font-size:22px;font-weight:bold;letter-spacing:2px;font-family:Verdana,Geneva,sans-serif;">
-<a href="https://newsmarvin.com" style="color:#fff;text-decoration:none;">ai news</a>
+<div style="background:#826eb4;padding:16px 20px;">
+<table cellpadding="0" cellspacing="0" border="0" style="width:100%;"><tr>
+<td style="width:70px;vertical-align:middle;">{logo_img}</td>
+<td style="vertical-align:middle;padding-left:14px;">
+<div style="color:#fff;font-size:20px;font-weight:bold;letter-spacing:2px;font-family:Verdana,Geneva,sans-serif;">
+<a href="https://newsmarvin.com" style="color:#fff;text-decoration:none;">marvin ai news</a>
 </div>
-<div style="color:rgba(255,255,255,0.6);font-size:13px;margin-top:4px;font-family:Verdana,Geneva,sans-serif;">
-Your AI news, served raw
+<div style="color:rgba(255,255,255,0.55);font-size:11px;margin-top:2px;font-family:Verdana,Geneva,sans-serif;">
+Your AI news, served raw &middot; {display_date} &middot; {total_headlines} headlines &middot; {total_sources} sources
 </div>
-<div style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:8px;font-family:Verdana,Geneva,sans-serif;">
-{display_date} &middot; {total_headlines} headlines &middot; {total_sources} sources
-</div>
+</td>
+</tr></table>
 </div>
 
 <!-- Body -->
@@ -188,6 +191,9 @@ Your AI news, served raw
 <div style="border-top:1px solid #ddd;padding:14px 20px;color:#999;font-size:13px;text-align:center;font-family:Verdana,Geneva,sans-serif;">
 <a href="https://newsmarvin.com" style="color:#826eb4;text-decoration:none;">newsmarvin.com</a>
  &middot; {datetime.now(CR_TZ).strftime("%Y-%m-%d %H:%M CST")}
+<div style="margin-top:16px;">
+<a href="%%UNSUB_URL%%" style="display:inline-block;padding:10px 28px;background:#826eb4;color:#fff;text-decoration:none;border-radius:4px;font-size:13px;font-weight:bold;">Unsubscribe</a>
+</div>
 </div>
 
 </div>
@@ -214,12 +220,13 @@ def send_emails(subscribers, subject, text_body, html_body):
 
         emails = []
         for email in batch:
+            unsub_url = f"https://newsmarvin.com/api/unsubscribe?email={email}"
             emails.append({
                 "from": FROM_EMAIL,
                 "to": [email],
                 "subject": subject,
-                "text": text_body,
-                "html": html_body,
+                "text": text_body.replace("%%UNSUB_URL%%", unsub_url),
+                "html": html_body.replace("%%UNSUB_URL%%", unsub_url),
             })
 
         resp = requests.post(

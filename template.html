@@ -563,7 +563,7 @@ footer {
 </div>
 
 <footer>
-  ai news &middot; updated {{ generated_at }} &middot; updates every 4h &middot; <a href="mailto:zuniga.manuel@gmail.com" style="color:rgba(255,255,255,0.7)">suggestions</a> &middot; <a href="https://github.com/mzuniga51/newsmarvin" style="color:rgba(255,255,255,0.7)">github</a>
+  ai news &middot; updated {{ generated_at }} &middot; updates every 4h &middot; <a href="mailto:zuniga.manuel@gmail.com" style="color:#826eb4">suggestions</a> &middot; <a href="https://github.com/mzuniga51/newsmarvin" style="color:#826eb4">github</a>
 </footer>
 
 <script>
@@ -717,12 +717,23 @@ function submitDigest(e) {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({email: email})
   }).then(function(r) { return r.json(); }).then(function(data) {
-    form.style.display = 'none';
-    msg.style.display = '';
-    msg.textContent = data.ok ? 'done.' : (data.error || 'error');
+    if (data.ok) {
+      form.style.display = 'none';
+      msg.style.display = '';
+      msg.textContent = 'subscribed ✓';
+      msg.style.color = '#826eb4';
+      msg.style.fontWeight = 'bold';
+      var says = document.querySelector('.marvin-says');
+      if (says) { says.innerHTML = 'Marvin says<br><span>see you at 6am</span>'; }
+    } else {
+      msg.style.display = '';
+      msg.textContent = data.error || 'error';
+      msg.style.color = '#c00';
+    }
   }).catch(function() {
     msg.style.display = '';
     msg.textContent = 'error — try again';
+    msg.style.color = '#c00';
   });
   return false;
 }
