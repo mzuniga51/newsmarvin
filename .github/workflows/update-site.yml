@@ -27,6 +27,8 @@ jobs:
           node-version: '20'
 
       - name: Aggregate RSS feeds
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python aggregate.py
 
       - name: Deploy to Cloudflare Pages

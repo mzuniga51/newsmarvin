@@ -5,6 +5,12 @@
 TIMEZONE_OFFSET = -6  # Costa Rica (UTC-6)
 
 # ---------------------------------------------------------------------------
+# LLM Classification
+# ---------------------------------------------------------------------------
+LLM_CLASSIFY = True  # Use Claude Haiku for classification (keywords as fallback)
+LLM_MODEL = "claude-haiku-4-5-20251001"
+
+# ---------------------------------------------------------------------------
 # RSS Feed Sources
 # ---------------------------------------------------------------------------
 
@@ -128,7 +134,7 @@ AI_KEYWORDS = [
     "ai", "artificial intelligence", "machine learning", "deep learning",
     "llm", "large language model", "gpt", "claude", "gemini", "llama",
     "neural network", "chatbot", "openai", "anthropic", "deepmind",
-    "copilot", "generative ai", "diffusion model", "agi",
+    "copilot", "grok", "generative ai", "diffusion model", "agi",
     "superintelligence", "reinforcement learning", "computer vision",
     "natural language processing", "nlp", "ai model", "ai agent",
     "ai tool", "ai safety", "ai regulation", "ai chip",
@@ -166,231 +172,91 @@ CATEGORIES = [
     # IS a release: "OpenAI releases GPT-5", "Anthropic launches Claude 4",
     #   "Meta open-sources Llama 4", "New version of TensorFlow available"
     # NOT a release: "OpenAI reportedly working on GPT-5" (→ Rumors),
-    #   "GPT-5 benchmarks show improvement" (→ Research),
-    #   "Claude Code popularity surprises CEO" (→ Industry)
+    #   "GPT-5 benchmarks show improvement" (→ Research)
     # -----------------------------------------------------------------
     {
         "name": "Releases",
+        "description": "A company shipped something new today — a new model, product version, API, or open-source release. NOT policy papers, press releases, or reports.",
         "strong": [
             "releases new", "released new", "releasing new", "now available",
-            "rolling out", "rolls out", "generally available", "public beta",
+            "rolling out", "rolls out", "generally available", "general availability",
+            "ga release", "public beta",
             "early access", "ships new", "shipped new",
             "introduces new", "introducing new", "debuts new",
             "we're excited to", "is now open source", "open-sources",
             "new version of", "v2 ", "v3 ", "v4 ", "v5 ",
+            "just released", "just launched", "announces new",
+            "unveils new", "reveals new",
+            "now supports", "adds support", "new capability", "new capabilities",
+            "stable release", "production ready", "production-ready",
         ],
         "weak": [
-            "release", "deploy", "open source", "open-source",
-            "launched", "available",
+            "release", "released", "deploy", "open source", "open-source",
+            "unveiled", "reveals", "introduces",
+            "new mode", "new feature", "adds new",
         ],
         "exclude": [
-            "rumor", "reportedly", "expected to", "might", "could soon",
+            "rumor", "reportedly", "expected to", "could soon",
             "leak", "may release", "planning to", "accus", "stock",
             "billion", "million", "lawsuit",
+            "nuke", "missile", "weapon", "combat", "military",
+            "simulated", "war game",
         ],
     },
 
     # -----------------------------------------------------------------
-    # 2. PRODUCTS & TOOLS — Things you can use
+    # 2. PEOPLE — Key personnel moves across AI
     # -----------------------------------------------------------------
-    # DEFINITION: Coverage of AI products, apps, APIs, developer tools,
-    # and platforms. Practical, hands-on. Either reviewing a product,
-    # announcing a feature, or discussing how to use something.
+    # DEFINITION: Individual people joining, leaving, or moving between
+    # AI companies and ventures. Leadership changes, high-profile hires,
+    # departures, founders starting new companies.
     #
-    # IS products: "ChatGPT adds voice mode", "How to use Claude Code",
-    #   "Copilot gets new IDE features", "New AI coding assistant reviewed"
-    # NOT products: "OpenAI raises $10B" (→ Business), "AI agents will
-    #   destroy jobs" (→ Industry), "SDK benchmark paper" (→ Research)
+    # IS people: "Amazon's AGI lab leader is leaving",
+    #   "Former OpenAI researcher joins Anthropic",
+    #   "Dario Amodei steps down as CEO"
+    # NOT people: "Google lays off 500 AI engineers" (→ Business),
+    #   "EU summons tech CEOs" (→ Policy)
     # -----------------------------------------------------------------
     {
-        "name": "Products & Tools",
+        "name": "People",
+        "description": "Key personnel joining, leaving, or moving between AI companies. Leadership changes, high-profile hires, departures, founders starting new ventures.",
         "strong": [
-            "chatgpt", "copilot", "coding assistant", "claude code",
-            "ai assistant", "ai app", "ai tool", "ai platform",
-            "ai-powered", "ai search", "api access",
-            "sdk", "plugin", "new feature",
-            "free tier", "pricing update", "subscription",
-            "reverse-engineering", "foundation tool",
-            "agent gateway", "sandbox agent", "agent sdk",
-            "ai news app", "ai payment",
+            # Departures
+            "leaves", "leaving", "departs", "departure", "departing",
+            "steps down", "stepping down", "step down",
+            "resigns", "resigned", "resignation",
+            "exits company", "exiting",
+            "fired", "ousted", "let go",
+            # Arrivals
+            "joins", "joining", "joined",
+            "appointed", "appointment",
+            "named ceo", "named cto", "named chief",
+            "new ceo", "new cto", "new chief",
+            "taps ", "tapped to lead", "tapped as",
+            "hires", "hired",
+            # Transitions
+            "replaces", "succeeds", "successor",
+            "promoted to", "promotion",
+            "poached", "recruited from",
+            "starts new venture", "launches startup",
         ],
         "weak": [
-            "developer tool", "enterprise", "integration",
-            "workspace", "extension", "infrastructure",
-            "cybersecurity", "firewall", "cloud ai",
+            "leader", "leadership change",
+            "chief", "officer",
+            "head of", "director of", "vp of",
+            "executive", "founder", "co-founder", "cofounder",
+            "veteran", "pioneer",
+            "recruit", "talent war",
         ],
         "exclude": [
-            "rumor", "stock", "billion", "funding", "valuation",
-            "lawsuit", "regulation",
+            "stock", "billion", "million", "funding", "valuation",
+            "layoff", "layoffs", "laid off",
+            "regulation", "legislation",
         ],
     },
 
     # -----------------------------------------------------------------
-    # 3. RUMORS & SPECULATION — Not confirmed yet
-    # -----------------------------------------------------------------
-    # DEFINITION: Leaks, unconfirmed reports, speculation about future
-    # products, upcoming announcements. The headline uses hedging
-    # language ("reportedly", "may", "could", "sources say").
-    #
-    # IS rumor: "OpenAI reportedly working on GPT-6", "Apple may launch
-    #   AI device next year", "Sources: Google considering Anthropic bid"
-    # NOT rumor: "OpenAI launches GPT-5" (→ Releases, it happened)
-    # -----------------------------------------------------------------
-    {
-        "name": "Rumors & Speculation",
-        "strong": [
-            "rumor", "rumour", "reportedly", "report says",
-            "sources say", "according to sources", "leaked",
-            "leak suggests", "upcoming", "expected to",
-            "planning to", "set to announce", "may soon",
-            "could soon", "in talks to", "in the works",
-            "under development", "preparing to", "considering",
-        ],
-        "weak": [
-            "may ", "might ", "could ", "plans to", "working on",
-            "aims to", "looking to", "exploring",
-        ],
-        "exclude": [],
-    },
-
-    # -----------------------------------------------------------------
-    # 4. FUN & WEIRD — The lighter side of AI
-    # -----------------------------------------------------------------
-    # DEFINITION: Quirky, humorous, absurd, or culturally interesting
-    # AI stories. The pope vs AI, robots doing silly things, AI art
-    # controversies, AI dating, unusual applications.
-    #
-    # IS fun: "Pope tells priests not to use AI for homilies",
-    #   "AI generates 10,000 cats nobody asked for",
-    #   "Man marries AI chatbot", "AI writes a Christmas album"
-    # NOT fun: "OpenAI releases GPT-5" (→ Releases)
-    # -----------------------------------------------------------------
-    {
-        "name": "Fun & Weird",
-        "strong": [
-            "pope", "church", "priest", "homil",
-            "weird", "bizarre", "absurd", "hilarious", "funny",
-            "dating", "marry", "marriage", "love",
-            "cat ", "cats ", "dog ", "dogs ",
-            "meme", "parody", "satire", "prank",
-            "art controversy", "deepfake", "onlyfans",
-            "homework", "cheat", "school ban",
-            "robot dance", "robot fail",
-            "fumes", "rant", "wooden box into space",
-        ],
-        "weak": [
-            "strange", "unusual", "surprising", "unexpected",
-            "creative", "wild", "crazy",
-            "hidden", "vanished", "quietly",
-        ],
-        "exclude": [],
-    },
-
-    # -----------------------------------------------------------------
-    # 5. BUSINESS & MONEY — Follow the money
-    # -----------------------------------------------------------------
-    # DEFINITION: Funding rounds, valuations, M&A, revenue, earnings,
-    # stock price moves, IPOs, hiring/layoffs, data center investments.
-    # The financial and corporate side of AI.
-    #
-    # IS business: "Anthropic raises $5B", "NVIDIA stock hits record",
-    #   "OpenAI acquires startup", "Google lays off AI team"
-    # NOT business: "Anthropic releases Claude 4" (→ Releases),
-    #   "EU regulates AI companies" (→ Policy)
-    # -----------------------------------------------------------------
-    {
-        "name": "Business & Money",
-        "strong": [
-            "funding", "raises", "raised", "valuation", "valued at",
-            "billion", "million", "ipo", "acquisition", "acquires",
-            "acquired", "revenue", "series a", "series b", "series c",
-            "series d", "share sale", "stock", "shares", "earnings",
-            "profit", "market cap", "investment", "investor",
-            "layoff", "layoffs", "laid off", "data center", "data centre",
-            "sinks", "plunges", "tanks", "soars", "surges",
-            "economic growth", "gdp", "goldman sachs", "morgan stanley",
-            "wall street", "market", "bullish", "bearish",
-            "consolidation", "enterprise ai", "consulting firms",
-        ],
-        "weak": [
-            "startup", "venture", "deal", "merger", "partnership",
-            "hire", "hiring", "spend", "spending",
-            "ceo", "executive", "founder", "enterprise",
-            "growth", "economy", "tariff",
-        ],
-        "exclude": [],
-    },
-
-    # -----------------------------------------------------------------
-    # 6. POLICY & REGULATION — AI meets government
-    # -----------------------------------------------------------------
-    # DEFINITION: Government regulation, legislation, lawsuits, bans,
-    # export controls, copyright disputes, safety mandates, ethics
-    # enforcement. Where AI intersects with law and the state.
-    #
-    # IS policy: "EU passes AI Act", "OpenAI sued for copyright",
-    #   "Congress holds AI safety hearing", "AI chip export ban"
-    # NOT policy: "Anthropic CEO discusses safety" (→ Industry),
-    #   "AI safety research paper" (→ Research)
-    # -----------------------------------------------------------------
-    {
-        "name": "Policy & Regulation",
-        "strong": [
-            "regulation", "regulated", "ai act", "executive order",
-            "legislation", "compliance", "export control",
-            "lawsuit", "sued", "suing", "sues",
-            "ban ", "bans ", "banned", "antitrust",
-            "congressional", "senate hearing", "eu ai",
-            "ai safety bill", "ai governance", "regulators",
-            "guardrail", "summon", "subpoena",
-            "accus", "theft", "steal", "stolen", "ripping off",
-            "harvesting", "scraping data", "data theft",
-            "military use", "defense secretary",
-            "export ban", "chip ban", "chip export",
-        ],
-        "weak": [
-            "congress", "senate", "copyright",
-            "policy", "govern", "privacy", "surveillance",
-            "probe", "investigat", "oversight", "scrutiny",
-            "advertising claims", "law review",
-        ],
-        "exclude": [],
-    },
-
-    # -----------------------------------------------------------------
-    # 7. RESEARCH — From the labs
-    # -----------------------------------------------------------------
-    # DEFINITION: Academic papers, scientific studies, benchmarks,
-    # technical breakthroughs, and fundamental research. Content that
-    # advances understanding rather than ships a product.
-    #
-    # IS research: "New paper on scaling laws", "Researchers find...",
-    #   "Benchmark shows...", "Study: LLMs can reason about..."
-    # NOT research: "Anthropic releases Claude 4" (→ Releases),
-    #   "AI researcher quits Google" (→ Industry)
-    # -----------------------------------------------------------------
-    {
-        "name": "Research",
-        "strong": [
-            "paper", "arxiv", "preprint", "peer review",
-            "study finds", "study shows", "researchers found",
-            "researchers demonstrate", "breakthrough",
-            "scaling law", "benchmark results", "state-of-the-art",
-            "novel approach", "outperforms", "distill",
-            "interpretable", "fluency index", "swe-bench",
-            "evaluate", "benchmark",
-        ],
-        "weak": [
-            "research", "researchers", "dataset", "training data",
-            "alignment", "rlhf", "reinforcement learning",
-            "tokeniz", "attention mechanism", "fine-tun",
-            "study", "experiment", "findings",
-        ],
-        "exclude": [],
-    },
-
-    # -----------------------------------------------------------------
-    # 8. VIBE CODING — Non-coders building software with AI
+    # 3. VIBE CODING — Non-coders building software with AI
     # -----------------------------------------------------------------
     # DEFINITION: The practice of describing what you want to an AI
     # and having it generate the code, without necessarily understanding
@@ -400,14 +266,13 @@ CATEGORIES = [
     #
     # IS vibe coding: "Vibe coding is changing who can build software",
     #   "Non-programmer builds SaaS app with AI in a weekend",
-    #   "Andrej Karpathy on the future of vibe coding",
-    #   "The security risks of vibe-coded applications"
-    # NOT vibe coding: "GitHub Copilot adds new features" (→ Products),
-    #   "SWE-bench benchmark results" (→ Research),
+    #   "Andrej Karpathy on the future of vibe coding"
+    # NOT vibe coding: "SWE-bench benchmark results" (→ Research),
     #   "Will AI replace programmers?" (→ Ethics)
     # -----------------------------------------------------------------
     {
         "name": "Vibe Coding",
+        "description": "Non-coders building software with AI. The prompt-to-app movement, AI code generation tools, and debates about AI-written code quality.",
         "strong": [
             # Core terms
             "vibe coding", "vibe-coding", "vibecoding", "vibe code",
@@ -446,21 +311,173 @@ CATEGORIES = [
     },
 
     # -----------------------------------------------------------------
-    # 9. ETHICS & PHILOSOPHY — The big questions
+    # 3. RUMORS & SPECULATION — Not confirmed yet
     # -----------------------------------------------------------------
-    # DEFINITION: Moral, philosophical, and societal debates about AI.
-    # Consciousness, sentience, existential risk, alignment philosophy,
-    # bias and fairness, labor displacement ethics, human dignity,
-    # the future of work, AI rights, responsible AI.
+    # DEFINITION: Leaks, unconfirmed reports, speculation about future
+    # products, upcoming announcements. The headline uses explicit
+    # hedging language ("reportedly", "sources say", "planning to").
     #
-    # IS ethics: "Will AI make human workers obsolete?",
-    #   "AI consciousness debate heats up", "The ethics of deepfakes",
-    #   "Who decides who gets to eat if AI replaces labor?"
-    # NOT ethics: "EU passes AI Act" (→ Policy, that's law not ethics),
-    #   "AI safety benchmark" (→ Research)
+    # NOTE: Generic words like "could", "may", "might" are NOT used
+    # as keywords — they appear in all kinds of stories. Only phrases
+    # that clearly signal unconfirmed information are matched.
+    #
+    # IS rumor: "OpenAI reportedly working on GPT-6", "Sources say
+    #   Google considering Anthropic bid", "Leaked docs reveal..."
+    # NOT rumor: "AI could transform healthcare" (→ that's commentary)
+    # -----------------------------------------------------------------
+    {
+        "name": "Rumors & Speculation",
+        "description": "Leaks, unconfirmed reports, and speculation about future products or announcements. Uses hedging language like 'reportedly', 'sources say', 'planning to'.",
+        "strong": [
+            "rumor", "rumour", "reportedly", "report says",
+            "sources say", "according to sources", "leaked",
+            "leak suggests", "upcoming", "expected to",
+            "planning to", "set to announce", "may soon",
+            "could soon", "in talks to", "in the works",
+            "under development", "preparing to", "considering",
+            "scoop:", "exclusive:",
+        ],
+        "weak": [
+            "plans to", "working on",
+            "aims to", "looking to", "exploring",
+            "teases", "hints at", "signals",
+        ],
+        "exclude": [],
+    },
+
+    # -----------------------------------------------------------------
+    # 4. BUSINESS & MONEY — Follow the money
+    # -----------------------------------------------------------------
+    # DEFINITION: Funding rounds, valuations, M&A, revenue, earnings,
+    # stock price moves, IPOs, hiring/layoffs, data center investments.
+    # The financial and corporate side of AI.
+    #
+    # IS business: "Anthropic raises $5B", "NVIDIA stock hits record",
+    #   "OpenAI acquires startup", "Google lays off AI team"
+    # NOT business: "Anthropic releases Claude 4" (→ Releases),
+    #   "EU regulates AI companies" (→ Policy)
+    # -----------------------------------------------------------------
+    {
+        "name": "Business & Money",
+        "description": "Funding rounds, valuations, M&A, revenue, earnings, stock moves, IPOs, hiring/layoffs, data center investments. The financial side of AI.",
+        "strong": [
+            "funding", "raises", "raised", "valuation", "valued at",
+            "billion", "million", "ipo", "acquisition", "acquires",
+            "acquired", "revenue", "series a", "series b", "series c",
+            "series d", "share sale", "stock", "shares", "earnings",
+            "profit", "market cap", "investment", "investor",
+            "layoff", "layoffs", "laid off", "data center", "data centre",
+            "sinks", "plunges", "tanks", "soars", "surges",
+            "economic growth", "gdp", "goldman sachs", "morgan stanley",
+            "wall street", "market", "bullish", "bearish",
+            "consolidation", "enterprise ai", "consulting firms",
+        ],
+        "weak": [
+            "startup", "venture", "deal", "merger", "partnership",
+            "hire", "hiring", "spend", "spending",
+            "ceo", "executive", "founder", "enterprise",
+            "growth", "economy", "tariff",
+        ],
+        "exclude": [],
+    },
+
+    # -----------------------------------------------------------------
+    # 5. POLICY & REGULATION — AI meets government
+    # -----------------------------------------------------------------
+    {
+        "name": "Policy & Regulation",
+        "description": "Government regulation, lawsuits, legislation, export controls, antitrust, copyright disputes, and legal battles involving AI.",
+        "strong": [
+            "regulation", "regulated", "ai act", "executive order",
+            "legislation", "compliance", "export control",
+            "lawsuit", "sued", "suing", "sues",
+            "ban ", "bans ", "banned", "antitrust",
+            "congressional", "senate hearing", "eu ai",
+            "ai safety bill", "ai governance", "regulators",
+            "guardrail", "summon", "subpoena",
+            "accus", "theft", "steal", "stolen", "ripping off",
+            "harvesting", "scraping data", "data theft",
+            "military use", "defense secretary",
+            "export ban", "chip ban", "chip export",
+        ],
+        "weak": [
+            "congress", "senate", "copyright",
+            "policy", "govern",
+            "probe", "investigat", "oversight", "scrutiny",
+            "advertising claims", "law review",
+        ],
+        "exclude": [],
+    },
+
+    # -----------------------------------------------------------------
+    # 6. SECURITY & PRIVACY — Threats, breaches, and surveillance
+    # -----------------------------------------------------------------
+    {
+        "name": "Security & Privacy",
+        "description": "Cybersecurity threats, data breaches, vulnerabilities, prompt injection, jailbreaks, surveillance, and AI safety/security risks.",
+        "strong": [
+            "hack", "hacker", "hackers", "hacking", "hacked",
+            "breach", "breaches", "data breach",
+            "vulnerability", "vulnerabilities", "security flaw", "security flaws",
+            "exploit", "exploits", "exploited", "zero-day", "0-day",
+            "malware", "ransomware", "phishing", "spyware",
+            "cybersecurity", "cyber attack", "cyberattack", "cyber threat",
+            "remote code execution", "code execution", "code injection",
+            "exfiltration", "data leak", "data leaked", "data exposure",
+            "attack vector", "attack surface",
+            "prompt injection", "jailbreak", "jailbreaking", "jailbroken",
+            "security risk", "security concern", "security panic",
+            "privacy violation", "privacy breach",
+            "surveillance", "spy", "spying", "espionage",
+            "credential theft", "credential stuffing", "identity theft",
+            "botnet", "ddos", "trojan", "backdoor",
+            "infosec", "cybercrime",
+            "at risk", "sparks panic",
+        ],
+        "weak": [
+            "security", "privacy", "threat", "threats",
+            "protect", "defense", "encryption", "decrypt",
+            "authentication", "firewall", "sandbox",
+            "data protection", "insecure",
+            "pentest", "penetration test", "red team",
+            "incident", "compromise", "compromised",
+        ],
+        "exclude": [
+            "stock", "billion", "funding", "valuation",
+            "regulation", "legislation",
+        ],
+    },
+
+    # -----------------------------------------------------------------
+    # 7. RESEARCH — From the labs
+    # -----------------------------------------------------------------
+    {
+        "name": "Research",
+        "description": "Scientific papers, benchmark results, studies, and technical breakthroughs from labs and universities. NOT product announcements that mention research.",
+        "strong": [
+            "paper", "arxiv", "preprint", "peer review",
+            "study finds", "study shows", "researchers found",
+            "researchers demonstrate", "breakthrough",
+            "scaling law", "benchmark results", "state-of-the-art",
+            "novel approach", "outperforms", "distill",
+            "interpretable", "fluency index", "swe-bench",
+            "evaluate", "benchmark",
+        ],
+        "weak": [
+            "research", "researchers", "dataset", "training data",
+            "alignment", "rlhf", "reinforcement learning",
+            "tokeniz", "attention mechanism", "fine-tun",
+            "study", "experiment", "findings",
+        ],
+        "exclude": [],
+    },
+
+    # -----------------------------------------------------------------
+    # 8. ETHICS & PHILOSOPHY — The big questions
     # -----------------------------------------------------------------
     {
         "name": "Ethics & Philosophy",
+        "description": "Existential questions about AI — consciousness, job displacement, bias, fairness, societal impact, responsible AI, and the future of work.",
         "strong": [
             "obsolete", "replace human", "replacing humans",
             "consciousness", "sentient", "sentience", "alive",
@@ -484,13 +501,55 @@ CATEGORIES = [
             "regulation", "legislation", "lawsuit", "compliance",
         ],
     },
+
+    # -----------------------------------------------------------------
+    # 9. FUN & WEIRD — The lighter side of AI
+    # -----------------------------------------------------------------
+    {
+        "name": "Fun & Weird",
+        "description": "The lighter, stranger, or more unexpected side of AI — bizarre use cases, memes, dating, art controversies, school bans, robot fails.",
+        "strong": [
+            "pope", "church", "priest", "homil",
+            "weird", "bizarre", "absurd", "hilarious", "funny",
+            "dating", "marry", "marriage", "love",
+            "cat ", "cats ", "dog ", "dogs ",
+            "meme", "parody", "satire", "prank",
+            "art controversy", "deepfake", "onlyfans",
+            "homework", "cheat", "school ban",
+            "robot dance", "robot fail",
+            "fumes", "rant", "wooden box into space",
+        ],
+        "weak": [
+            "strange", "unusual", "surprising", "unexpected",
+            "creative", "wild", "crazy",
+            "hidden", "vanished", "quietly",
+        ],
+        "exclude": [],
+    },
 ]
 
-# Catch-all for headlines that don't score in any category
-DEFAULT_CATEGORY = "Other"
+# Headlines that don't score in any category are dropped (no catch-all).
+DEFAULT_CATEGORY = None
 
-# Maximum items to show in the catch-all category (drop low-signal noise)
-MAX_OTHER_ITEMS = 25
+# Minimum score required for classification. Articles scoring below this
+# are treated as unclassifiable and dropped. Prevents weak description-only
+# matches (0.5) from pulling irrelevant articles into categories.
+# A score of 1.0 requires at least a weak keyword in the title, OR a strong
+# keyword in the description, OR two weak keywords in the description.
+MIN_CLASSIFICATION_SCORE = 1.0
+
+# Maximum items per category — keeps the feed focused on the best stories.
+# Ranked by: multi-source coverage first, then source tier, then recency.
+MAX_ITEMS_PER_CATEGORY = 15
+
+# ---------------------------------------------------------------------------
+# Top News — Editorially promoted stories
+# ---------------------------------------------------------------------------
+# Stories that are breaking or viral (3+ sources covering the same story)
+# are promoted to a "Top News" section that appears BEFORE all categories.
+# These stories are REMOVED from their original category to avoid duplication.
+TOP_NEWS_COVERAGE_THRESHOLD = 3  # min _also_covered_by count to qualify
+TOP_NEWS_MAX_ITEMS = 10
 
 # ---------------------------------------------------------------------------
 # Breaking News Detection
@@ -563,6 +622,77 @@ DEDUP_ENTITIES = [
 DEDUP_ENTITY_ALIASES = {
     "chinese": "china",
     "chinas": "china",
+}
+
+# ---------------------------------------------------------------------------
+# Paywall Filter
+# ---------------------------------------------------------------------------
+# Articles from these publishers are skipped entirely. Readers can't access
+# them without a subscription, so there's no point listing them.
+#
+# For direct RSS feeds (e.g., "Bloomberg Tech"), match by feed source name.
+# For Google News articles, the publisher is parsed from the title suffix
+# (e.g., "Some Headline - Bloomberg" → "bloomberg").
+
+PAYWALLED_PUBLISHERS = {
+    # Hard paywalls
+    "bloomberg", "wall street journal", "wsj", "financial times", "ft",
+    "the information", "barron's", "barrons", "nikkei", "nikkei asia",
+    "the athletic", "the economist",
+    # Metered / soft paywalls (most readers will hit the wall)
+    "new york times", "nyt", "washington post", "business insider",
+    "the atlantic", "wired", "fortune", "vanity fair",
+    "seeking alpha", "motley fool",
+}
+
+# Direct RSS feed sources to skip entirely (they're all paywalled)
+PAYWALLED_FEEDS = {
+    "Bloomberg Tech", "Financial Times", "WSJ Tech",
+    "NYT Tech", "Washington Post",
+}
+
+# ---------------------------------------------------------------------------
+# Google News Quality Filter
+# ---------------------------------------------------------------------------
+# Google News aggregates from thousands of publishers. Many are low-quality
+# local newspapers, SEO farms, or niche blogs. Block the worst offenders.
+
+GOOGLE_NEWS_BLOCKED_PUBLISHERS = {
+    # Local/regional newspapers (not relevant for AI news)
+    "gabber", "simpsonian", "utd mercury", "mississippi today",
+    "audacy", "statestatescoop", "kansas health",
+    "american legislative exchange", "eurasia review",
+    "manila times", "latin times", "american bazaar",
+    "national cio review", "cpa practice advisor",
+    "crain", "hotel online", "bikerumor",
+    "1851 franchise", "fox news", "tradingview",
+    "govtech", "tipranks", "investmentnews",
+    # SEO / content farms
+    "pymnts", "mashable",
+}
+
+# ---------------------------------------------------------------------------
+# Research Source Gating
+# ---------------------------------------------------------------------------
+# Only these RSS feed sources can contribute articles to the Research category.
+# An article from any other source that scores Research will be recategorized
+# to its next-best category (or dropped if no other category scores).
+
+RESEARCH_QUALITY_SOURCES = {
+    # Universities & labs
+    "MIT News AI", "BAIR Blog", "CMU SCS", "Oxford Internet Institute",
+    "UW Allen School", "Cambridge CST", "Vector Institute",
+    # Company research blogs
+    "Google DeepMind", "Google Research", "Meta Research",
+    "Microsoft Research", "Apple ML Research",
+    # Scientific journals
+    "Nature", "Nature Machine Intelligence", "Science",
+    "Scientific American", "New Scientist", "IEEE Spectrum",
+    # AI-focused (when they publish actual research coverage)
+    "The Gradient", "Import AI", "Ahead of AI", "Interconnects",
+    "BAIR Blog",
+    # Consultancies with research arms
+    "McKinsey",
 }
 
 # ---------------------------------------------------------------------------

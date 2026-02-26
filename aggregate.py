@@ -7,7 +7,9 @@
 # =============================================================================
 
 import sys
+import os
 import re
+import json
 import hashlib
 import calendar
 from datetime import datetime, timedelta, timezone
@@ -22,7 +24,12 @@ from config import (
     FEEDS, TIER2_SOURCES, AI_KEYWORDS, CATEGORIES, DEFAULT_CATEGORY,
     COMPANIES, MAX_HEADLINE_AGE_DAYS, TIMEZONE_OFFSET,
     DEDUP_SIMILARITY_THRESHOLD, DEDUP_ENTITIES, DEDUP_ENTITY_ALIASES,
-    BREAKING_TITLE_SIGNALS, MAX_OTHER_ITEMS,
+    BREAKING_TITLE_SIGNALS, MAX_ITEMS_PER_CATEGORY,
+    PAYWALLED_PUBLISHERS, PAYWALLED_FEEDS,
+    GOOGLE_NEWS_BLOCKED_PUBLISHERS, RESEARCH_QUALITY_SOURCES,
+    TOP_NEWS_COVERAGE_THRESHOLD, TOP_NEWS_MAX_ITEMS,
+    MIN_CLASSIFICATION_SCORE,
+    LLM_CLASSIFY, LLM_MODEL,
 )
 
 CR_TZ = timezone(timedelta(hours=TIMEZONE_OFFSET))
@@ -46,24 +53,74 @@ def parse_published(entry):
     return None
 
 
-def categorize(title):
-    lower = title.lower()
+def categorize(title, description=""):
+    """Two-pass classification: title is primary signal, description adds context.
+
+    Scoring:
+      - Strong keyword in title    = +3
+      - Strong keyword in desc     = +2
+      - Weak keyword in title      = +1
+      - Weak keyword in desc       = +0.5
+      - Exclude keyword in either  = -5
+    """
+    title_low = title.lower()
+    desc_low = description.lower() if description else ""
+
     best_cat = DEFAULT_CATEGORY
     best_score = 0
     for cat in CATEGORIES:
         score = 0
         for kw in cat.get("strong", []):
-            if kw in lower:
+            if kw in title_low:
                 score += 3
+            elif kw in desc_low:
+                score += 2
         for kw in cat.get("weak", []):
-            if kw in lower:
+            if kw in title_low:
                 score += 1
+            elif kw in desc_low:
+                score += 0.5
         for kw in cat.get("exclude", []):
-            if kw in lower:
+            if kw in title_low or kw in desc_low:
                 score -= 5
         if score > best_score:
             best_score = score
             best_cat = cat["name"]
+    # Require minimum confidence to classify
+    if best_score < MIN_CLASSIFICATION_SCORE:
+        return DEFAULT_CATEGORY
+    return best_cat
+
+
+def categorize_excluding(title, description="", exclude_cat=None):
+    """Categorize but skip a specific category. Used for source gating."""
+    title_low = title.lower()
+    desc_low = description.lower() if description else ""
+
+    best_cat = DEFAULT_CATEGORY
+    best_score = 0
+    for cat in CATEGORIES:
+        if cat["name"] == exclude_cat:
+            continue
+        score = 0
+        for kw in cat.get("strong", []):
+            if kw in title_low:
+                score += 3
+            elif kw in desc_low:
+                score += 2
+        for kw in cat.get("weak", []):
+            if kw in title_low:
+                score += 1
+            elif kw in desc_low:
+                score += 0.5
+        for kw in cat.get("exclude", []):
+            if kw in title_low or kw in desc_low:
+                score -= 5
+        if score > best_score:
+            best_score = score
+            best_cat = cat["name"]
+    if best_score < MIN_CLASSIFICATION_SCORE:
+        return DEFAULT_CATEGORY
     return best_cat
 
 
@@ -78,9 +135,35 @@ def detect_companies(title):
     return sorted(matched)
 
 
-def is_ai_related(title):
-    """Check if a headline matches AI keywords using word boundaries."""
-    return bool(_AI_RE.search(title))
+def is_ai_related(title, description=""):
+    """Check if a headline matches AI keywords using word boundaries.
+    Pass 1: checks both title and RSS description for relevance."""
+    return bool(_AI_RE.search(title)) or bool(_AI_RE.search(description))
+
+
+def extract_google_news_publisher(title):
+    """Extract publisher name from Google News title format: 'Headline - Publisher Name'."""
+    if " - " in title:
+        return title.rsplit(" - ", 1)[-1].strip().lower()
+    return ""
+
+
+def is_paywalled(source_name, title):
+    """Check if an article is from a paywalled publisher."""
+    if source_name in PAYWALLED_FEEDS:
+        return True
+    if source_name.startswith("Google News"):
+        pub = extract_google_news_publisher(title)
+        return any(pw in pub for pw in PAYWALLED_PUBLISHERS)
+    return False
+
+
+def is_blocked_google_news(source_name, title):
+    """Check if a Google News article is from a blocked low-quality publisher."""
+    if not source_name.startswith("Google News"):
+        return False
+    pub = extract_google_news_publisher(title)
+    return any(blocked in pub for blocked in GOOGLE_NEWS_BLOCKED_PUBLISHERS)
 
 
 def dedup_key(url, title):
@@ -235,6 +318,121 @@ def dedup_similar(headlines):
 
 
 # ---------------------------------------------------------------------------
+# LLM Classification
+# ---------------------------------------------------------------------------
+
+def classify_with_haiku(headlines):
+    """Reclassify articles using Claude Haiku for context-aware categorization.
+    Falls back to keyword classification if API call fails."""
+    if not LLM_CLASSIFY:
+        return
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        print("  WARNING: ANTHROPIC_API_KEY not set, keeping keyword classifications")
+        return
+
+    try:
+        import anthropic
+    except ImportError:
+        print("  WARNING: anthropic package not installed, keeping keyword classifications")
+        return
+
+    # Build category list for the prompt
+    cat_lines = []
+    for i, cat in enumerate(CATEGORIES, 1):
+        desc = cat.get("description", cat["name"])
+        cat_lines.append(f"{i}. {cat['name']} — {desc}")
+    categories_text = "\n".join(cat_lines)
+
+    system_prompt = f"""You classify AI/tech news articles into categories. For each article, return the best matching category name, or null if it doesn't fit any category.
+
+Categories:
+{categories_text}
+
+Rules:
+- Classify based on the PRIMARY topic, not incidental keyword mentions
+- "Releases" means a product/model/API was SHIPPED or made available, not a policy paper, press release, or report
+- "People" is about specific individuals changing roles, not general workforce news
+- "Research" is about scientific papers, studies, benchmarks — not product announcements that mention research
+- Return null for promotional content, ads, or articles that don't clearly fit any category
+- When in doubt between two categories, choose the one that best describes the article's main point
+
+Return ONLY a JSON array of objects with "id" and "category" fields. No other text."""
+
+    # Prepare article data
+    articles = []
+    for i, h in enumerate(headlines):
+        articles.append({
+            "id": i,
+            "title": h["title"],
+            "description": h.get("_description", "")[:200],
+        })
+
+    # Batch into chunks of 100
+    batch_size = 100
+    results = {}
+    client = anthropic.Anthropic(api_key=api_key)
+
+    for start in range(0, len(articles), batch_size):
+        batch = articles[start:start + batch_size]
+        user_msg = json.dumps(batch, ensure_ascii=False)
+
+        try:
+            response = client.messages.create(
+                model=LLM_MODEL,
+                max_tokens=4096,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_msg}],
+            )
+
+            text = response.content[0].text
+            # Extract JSON array (might be wrapped in markdown code block)
+            json_match = re.search(r'\[.*\]', text, re.DOTALL)
+            if json_match:
+                classifications = json.loads(json_match.group())
+                for item in classifications:
+                    article_id = item.get("id")
+                    category = item.get("category")
+                    if article_id is not None:
+                        results[article_id] = category
+        except Exception as e:
+            print(f"  WARNING: Haiku batch {start}-{start+len(batch)} failed: {e}")
+            continue
+
+    # Apply Haiku classifications
+    valid_categories = {cat["name"] for cat in CATEGORIES}
+    reclassified = 0
+    nulled = 0
+    for i, h in enumerate(headlines):
+        if i in results:
+            new_cat = results[i]
+            if new_cat is None:
+                if h["category"] is not None:
+                    nulled += 1
+                h["category"] = DEFAULT_CATEGORY
+            elif new_cat in valid_categories and new_cat != h["category"]:
+                reclassified += 1
+                h["category"] = new_cat
+
+    print(f"  Haiku: {reclassified} reclassified, {nulled} dropped, "
+          f"{len(headlines) - len(results)} unchanged (kept keyword)")
+
+
+def apply_research_gating(headlines):
+    """Research source gating: only trusted sources can contribute to Research."""
+    gated = 0
+    for h in headlines:
+        if h["category"] == "Research" and h["source"] not in RESEARCH_QUALITY_SOURCES:
+            new_cat = categorize_excluding(
+                h["title"], h.get("_description", ""), "Research")
+            h["category"] = new_cat
+            gated += 1
+    if gated:
+        print(f"  Research gating: {gated} articles moved to other categories")
+
+
+# ---------------------------------------------------------------------------
 # Fetch
 # ---------------------------------------------------------------------------
 
@@ -260,7 +458,23 @@ def fetch_feeds():
                 if not title:
                     continue
 
-                if source_name in TIER2_SOURCES and not is_ai_related(title):
+                # Extract description/summary from RSS for two-pass classification
+                desc = (entry.get("summary") or entry.get("description") or "").strip()
+                # Strip HTML tags from description
+                desc = re.sub(r'<[^>]+>', ' ', desc)
+                # Truncate to first ~500 chars (enough for classification, not wasteful)
+                desc = desc[:500]
+
+                # Filter: paywall check
+                if is_paywalled(source_name, title):
+                    continue
+
+                # Filter: Google News quality check
+                if is_blocked_google_news(source_name, title):
+                    continue
+
+                # Pass 1: Relevance check (title + description)
+                if source_name in TIER2_SOURCES and not is_ai_related(title, desc):
                     continue
 
                 key = dedup_key(link, title)
@@ -274,13 +488,17 @@ def fetch_feeds():
                 if not published:
                     published = datetime.now(timezone.utc)
 
+                # Pass 2: Keyword classification (may be overridden by LLM)
+                category = categorize(title, desc)
+
                 headlines.append({
                     "title": title,
                     "link": link,
                     "source": source_name,
                     "published": published,
-                    "category": categorize(title),
+                    "category": category,
                     "companies": detect_companies(title),
+                    "_description": desc,
                 })
                 count += 1
 
@@ -369,23 +587,53 @@ def group_by_day(headlines):
 def build_sections(headlines):
     by_cat = defaultdict(list)
     for h in headlines:
+        # Drop uncategorized headlines (DEFAULT_CATEGORY is None)
+        if h["category"] is None:
+            continue
         by_cat[h["category"]].append(h)
-    for cat in by_cat:
-        by_cat[cat].sort(key=lambda h: h["published"], reverse=True)
 
-    # Cap the catch-all category — keep best items by coverage & source tier
-    if DEFAULT_CATEGORY in by_cat and len(by_cat[DEFAULT_CATEGORY]) > MAX_OTHER_ITEMS:
-        others = by_cat[DEFAULT_CATEGORY]
-        # Rank by: multi-source coverage first, then source tier, then recency
-        others.sort(key=lambda h: (
+    # --- Top News: extract breaking + viral stories from ALL categories ---
+    # These appear in Top News ONLY and are removed from their category.
+    top_news = []
+    for cat in list(by_cat.keys()):
+        remaining = []
+        for h in by_cat[cat]:
+            is_breaking = h.get("_breaking", False)
+            is_viral = len(h.get("_also_covered_by", [])) >= TOP_NEWS_COVERAGE_THRESHOLD
+            if is_breaking or is_viral:
+                h["_promoted_from"] = cat
+                top_news.append(h)
+            else:
+                remaining.append(h)
+        by_cat[cat] = remaining
+
+    # Rank top news: coverage breadth first, then source tier, then recency
+    top_news.sort(key=lambda h: (
+        -len(h.get("_also_covered_by", [])),
+        SOURCE_TIER.get(h["source"], 2),
+        -h["published"].timestamp(),
+    ))
+    top_news = top_news[:TOP_NEWS_MAX_ITEMS]
+
+    # Cap every category: rank by coverage + source tier + recency, keep top N
+    for cat in by_cat:
+        items = by_cat[cat]
+        items.sort(key=lambda h: (
             -len(h.get("_also_covered_by", [])),
             SOURCE_TIER.get(h["source"], 2),
             -h["published"].timestamp(),
         ))
-        by_cat[DEFAULT_CATEGORY] = others[:MAX_OTHER_ITEMS]
+        by_cat[cat] = items[:MAX_ITEMS_PER_CATEGORY]
 
-    category_order = [c["name"] for c in CATEGORIES] + [DEFAULT_CATEGORY]
-    return [(cat, by_cat[cat]) for cat in category_order if cat in by_cat]
+    # Build final sections: Top News first, then categories in order
+    sections = []
+    if top_news:
+        sections.append(("Top News", top_news))
+    category_order = [c["name"] for c in CATEGORIES]
+    for cat in category_order:
+        if cat in by_cat and by_cat[cat]:
+            sections.append((cat, by_cat[cat]))
+    return sections
 
 
 def render_page(sections, headlines, display_date, filename, calendars,
@@ -456,6 +704,15 @@ def main():
     if not headlines:
         print("\nNo headlines fetched.")
         sys.exit(1)
+
+    # LLM classification (overrides keyword-based categories)
+    print("\nClassifying with Haiku...")
+    classify_with_haiku(headlines)
+    apply_research_gating(headlines)
+
+    # Clean up internal description field
+    for h in headlines:
+        h.pop("_description", None)
 
     print(f"\nTotal: {len(headlines)} headlines (before dedup)")
     headlines = dedup_similar(headlines)
