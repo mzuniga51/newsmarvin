@@ -332,10 +332,12 @@ header .meta {
 }
 .hl a:visited { color: #551a8b; }
 .hl a:hover { text-decoration: underline; }
+.hl .hl-body {
+  min-width: 0;
+}
 .hl .src {
   color: #999;
   font-size: 10px;
-  flex-shrink: 0;
   white-space: nowrap;
 }
 
@@ -545,10 +547,9 @@ footer {
       <span class="count">({{ headlines|length }})</span>
     </div>
     {% for h in headlines %}
-    <div class="hl{% if h._breaking %} breaking{% endif %}" data-companies="{{ h.companies|join(' ') }}">
+    <div class="hl{% if category == 'Top News' %} breaking{% endif %}" data-companies="{{ h.companies|join(' ') }}">
       <span class="time">{{ h.time_str }}</span>
-      <a href="{{ h.link }}" target="_blank" rel="noopener">{{ h.title }}</a>
-      <span class="src">({{ h.source }}{% if h._also_covered_by %} +{{ h._also_covered_by|length }}{% endif %})</span>
+      <span class="hl-body"><a href="{{ h.link }}" target="_blank" rel="noopener">{{ h.title }}</a> <span class="src">({{ h.source }}{% if h._also_covered_by %} +{{ h._also_covered_by|length }}{% endif %})</span></span>
     </div>
     {% endfor %}
   </div>
@@ -562,7 +563,7 @@ footer {
 </div>
 
 <footer>
-  ai news &middot; updated {{ generated_at }} &middot; updates every 3h
+  ai news &middot; updated {{ generated_at }} &middot; updates every 4h &middot; <a href="mailto:zuniga.manuel@gmail.com" style="color:rgba(255,255,255,0.7)">suggestions</a> &middot; <a href="https://github.com/mzuniga51/newsmarvin" style="color:rgba(255,255,255,0.7)">github</a>
 </footer>
 
 <script>
@@ -685,8 +686,8 @@ footer {
         var also = h.also > 0 ? ' +' + h.also : '';
         html += '<div class="hl' + cls + '">' +
           '<span class="time">' + h.time + '</span>' +
-          '<a href="' + h.link + '" target="_blank" rel="noopener">' + escHtml(h.title) + '</a>' +
-          '<span class="src">(' + escHtml(h.source) + also + ')</span>' +
+          '<span class="hl-body"><a href="' + h.link + '" target="_blank" rel="noopener">' + escHtml(h.title) + '</a> ' +
+          '<span class="src">(' + escHtml(h.source) + also + ')</span></span>' +
           '</div>';
       });
     });

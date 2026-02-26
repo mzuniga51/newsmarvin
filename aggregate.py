@@ -365,7 +365,8 @@ Rules:
 - "Releases" means a product/model/API was SHIPPED or made available, not a policy paper, press release, or report
 - "People" is about specific individuals changing roles, not general workforce news
 - "Research" is about scientific papers, studies, benchmarks — not product announcements that mention research
-- Return null category for promotional content, ads, or articles that don't clearly fit
+- Return null category for promotional content, ads, paywalled/subscription-required articles, or articles that don't clearly fit
+- If the title or description says "subscribe", "sign in to read", "for subscribers", "premium", or similar paywall language, return null
 - Only tag companies that are a meaningful subject of the article, not passing mentions
 
 Return ONLY a JSON array of objects with "id", "category", and "companies" fields. No other text."""
