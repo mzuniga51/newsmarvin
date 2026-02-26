@@ -345,20 +345,30 @@ def classify_with_haiku(headlines):
         cat_lines.append(f"{i}. {cat['name']} — {desc}")
     categories_text = "\n".join(cat_lines)
 
-    system_prompt = f"""You classify AI/tech news articles into categories. For each article, return the best matching category name, or null if it doesn't fit any category.
+    # Build known companies list for normalization
+    known_companies = sorted(COMPANIES.keys())
+    companies_text = ", ".join(known_companies)
+
+    system_prompt = f"""You classify AI/tech news articles into categories and tag mentioned companies.
 
 Categories:
 {categories_text}
+
+Known companies (use these names when possible): {companies_text}
+
+For each article return:
+- "category": best matching category name, or null if it doesn't fit
+- "companies": array of company/org identifiers mentioned (lowercase, no spaces). Use known names above when applicable. For new companies not in the list, use a short lowercase slug (e.g. "perplexity", "cursor", "replit").
 
 Rules:
 - Classify based on the PRIMARY topic, not incidental keyword mentions
 - "Releases" means a product/model/API was SHIPPED or made available, not a policy paper, press release, or report
 - "People" is about specific individuals changing roles, not general workforce news
 - "Research" is about scientific papers, studies, benchmarks — not product announcements that mention research
-- Return null for promotional content, ads, or articles that don't clearly fit any category
-- When in doubt between two categories, choose the one that best describes the article's main point
+- Return null category for promotional content, ads, or articles that don't clearly fit
+- Only tag companies that are a meaningful subject of the article, not passing mentions
 
-Return ONLY a JSON array of objects with "id" and "category" fields. No other text."""
+Return ONLY a JSON array of objects with "id", "category", and "companies" fields. No other text."""
 
     # Prepare article data
     articles = []
@@ -393,20 +403,23 @@ Return ONLY a JSON array of objects with "id" and "category" fields. No other te
                 classifications = json.loads(json_match.group())
                 for item in classifications:
                     article_id = item.get("id")
-                    category = item.get("category")
                     if article_id is not None:
-                        results[article_id] = category
+                        results[article_id] = {
+                            "category": item.get("category"),
+                            "companies": item.get("companies", []),
+                        }
         except Exception as e:
             print(f"  WARNING: Haiku batch {start}-{start+len(batch)} failed: {e}")
             continue
 
-    # Apply Haiku classifications
+    # Apply Haiku classifications and company tags
     valid_categories = {cat["name"] for cat in CATEGORIES}
     reclassified = 0
     nulled = 0
     for i, h in enumerate(headlines):
         if i in results:
-            new_cat = results[i]
+            r = results[i]
+            new_cat = r["category"]
             if new_cat is None:
                 if h["category"] is not None:
                     nulled += 1
@@ -414,6 +427,9 @@ Return ONLY a JSON array of objects with "id" and "category" fields. No other te
             elif new_cat in valid_categories and new_cat != h["category"]:
                 reclassified += 1
                 h["category"] = new_cat
+            # Override companies with Haiku's tags (more context-aware)
+            if r["companies"]:
+                h["companies"] = sorted(set(r["companies"]))
 
     print(f"  Haiku: {reclassified} reclassified, {nulled} dropped, "
           f"{len(headlines) - len(results)} unchanged (kept keyword)")
