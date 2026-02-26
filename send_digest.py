@@ -128,7 +128,7 @@ def build_email(sections, today_str, total_headlines, total_sources):
         anchor = cat_name.lower().replace(" & ", "-").replace(" ", "-")
         rows = []
         for h in headlines:
-            weight = "font-weight:bold;" if h.get("_breaking") else ""
+            weight = "font-weight:bold;" if (h.get("_breaking") or cat_name == "Top News") else ""
             also = f" +{len(h['_also_covered_by'])}" if h.get("_also_covered_by") else ""
             title_esc = _html_escape(h["title"])
             source_esc = _html_escape(h["source"])

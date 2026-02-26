@@ -267,7 +267,7 @@ def dedup_similar(headlines):
     result = []
     deduped = 0
     for cluster in clusters:
-        cluster.sort(key=lambda h: (SOURCE_TIER.get(h["source"], 2), h["published"]))
+        cluster.sort(key=lambda h: (SOURCE_TIER.get(h.get("_feed_source", h["source"]), 2), h["published"]))
         best = cluster[0]
         if len(cluster) > 1:
             best["_also_covered_by"] = [c["source"] for c in cluster[1:]]
@@ -440,7 +440,7 @@ def apply_research_gating(headlines):
     """Research source gating: only trusted sources can contribute to Research."""
     gated = 0
     for h in headlines:
-        if h["category"] == "Research" and h["source"] not in RESEARCH_QUALITY_SOURCES:
+        if h["category"] == "Research" and h.get("_feed_source", h["source"]) not in RESEARCH_QUALITY_SOURCES:
             new_cat = categorize_excluding(
                 h["title"], h.get("_description", ""), "Research")
             h["category"] = new_cat
@@ -508,10 +508,20 @@ def fetch_feeds():
                 # Pass 2: Keyword classification (may be overridden by LLM)
                 category = categorize(title, desc)
 
+                # For Google News: extract real publisher and clean title
+                display_source = source_name
+                display_title = title
+                if source_name.startswith("Google News") and " - " in title:
+                    pub = title.rsplit(" - ", 1)[-1].strip()
+                    if pub:
+                        display_source = pub
+                        display_title = title.rsplit(" - ", 1)[0].strip()
+
                 headlines.append({
-                    "title": title,
+                    "title": display_title,
                     "link": link,
-                    "source": source_name,
+                    "source": display_source,
+                    "_feed_source": source_name,
                     "published": published,
                     "category": category,
                     "companies": detect_companies(title),
@@ -627,7 +637,7 @@ def build_sections(headlines):
     # Rank top news: coverage breadth first, then source tier, then recency
     top_news.sort(key=lambda h: (
         -len(h.get("_also_covered_by", [])),
-        SOURCE_TIER.get(h["source"], 2),
+        SOURCE_TIER.get(h.get("_feed_source", h["source"]), 2),
         -h["published"].timestamp(),
     ))
     top_news = top_news[:TOP_NEWS_MAX_ITEMS]
@@ -637,7 +647,7 @@ def build_sections(headlines):
         items = by_cat[cat]
         items.sort(key=lambda h: (
             -len(h.get("_also_covered_by", [])),
-            SOURCE_TIER.get(h["source"], 2),
+            SOURCE_TIER.get(h.get("_feed_source", h["source"]), 2),
             -h["published"].timestamp(),
         ))
         by_cat[cat] = items[:MAX_ITEMS_PER_CATEGORY]
