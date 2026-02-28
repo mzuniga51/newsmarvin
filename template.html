@@ -3,7 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ai news</title>
+<title>{{ page_title }}</title>
+<meta name="description" content="{{ page_description }}">
+<link rel="canonical" href="https://newsmarvin.com/{{ canonical_path }}">
+<!-- OpenGraph -->
+<meta property="og:title" content="{{ page_title }}">
+<meta property="og:description" content="{{ page_description }}">
+<meta property="og:url" content="https://newsmarvin.com/{{ canonical_path }}">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://newsmarvin.com/logo.png">
+<meta property="og:site_name" content="NewsMarvin">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ page_title }}">
+<meta name="twitter:description" content="{{ page_description }}">
+<meta name="twitter:image" content="https://newsmarvin.com/logo.png">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -442,8 +456,12 @@ footer {
     order: 2;
   }
   .main { order: 1; padding: 0 8px; }
-  /* Hide sidebar clutter on mobile — show only sections nav */
-  .marvin-wrap { display: none; }
+  /* Hide sidebar clutter on mobile — keep Marvin + subscribe */
+  .marvin-wrap { width: 100%; display: flex; gap: 8px; align-items: center; order: -1; }
+  .marvin-wrap .marvin-sidebar { width: 48px; height: 48px; }
+  .marvin-wrap .marvin-cta { flex: 1; }
+  .marvin-wrap .marvin-says { font-size: 11px; }
+  .marvin-wrap .marvin-form input { font-size: 12px; }
   .cal { display: none; }
   .date-range { display: none; }
   .cat-nav {
@@ -471,6 +489,20 @@ footer {
   .filter-info { flex-direction: column; gap: 4px; align-items: flex-start; font-size: 11px; }
 }
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "NewsMarvin",
+  "url": "https://newsmarvin.com/",
+  "description": "AI news aggregated from {{ total_sources }}+ sources, deduplicated and ranked. Updated every 4 hours.",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://newsmarvin.com/?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
 </head>
 <body>
 

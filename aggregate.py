@@ -758,7 +758,8 @@ def build_sections(headlines):
 
 
 def render_page(sections, headlines, display_date, filename, calendars,
-                global_companies=None, all_headlines=None):
+                global_companies=None, all_headlines=None,
+                page_title=None, page_description=None):
     import json
     env = Environment(loader=FileSystemLoader(PROJECT_DIR))
     template = env.get_template("template.html")
@@ -766,6 +767,13 @@ def render_page(sections, headlines, display_date, filename, calendars,
     # Use global company list (all days) if provided, else fall back to page-only
     all_companies = global_companies or sorted({c for h in headlines for c in h["companies"]})
     now_cr = datetime.now(CR_TZ)
+
+    # SEO defaults
+    if not page_title:
+        page_title = "AI News Today — NewsMarvin"
+    if not page_description:
+        page_description = f"{len(headlines)} AI headlines from {len(FEEDS)} sources, deduplicated and ranked."
+    canonical_path = "" if filename == "index.html" else filename
 
     # Serialize all headlines as JSON for cross-day company filtering
     all_hl_json = "[]"
@@ -792,6 +800,9 @@ def render_page(sections, headlines, display_date, filename, calendars,
         total_sources=len(FEEDS),
         calendars=calendars,
         all_headlines_json=all_hl_json,
+        page_title=page_title,
+        page_description=page_description,
+        canonical_path=canonical_path,
     )
 
     output_dir = PROJECT_DIR / "output"
@@ -904,10 +915,13 @@ def main():
     cals = build_calendars(sorted_days, today_cr, today_cr)
     display = f"Last 24 hours"
     path = render_page(sections, recent_hl, display, "index.html", cals,
-                       global_companies, all_sorted)
+                       global_companies, all_sorted,
+                       page_title="AI News Today — NewsMarvin",
+                       page_description=f"Today's {len(recent_hl)} AI headlines from {len(FEEDS)} sources. Deduplicated, ranked, and updated every 4 hours.")
     print(f"  {path} ({len(recent_hl)} headlines)")
 
     # Render archive days
+    archive_pages = []
     for day in sorted_days:
         if day == today_cr:
             continue
@@ -916,9 +930,50 @@ def main():
         cals = build_calendars(sorted_days, day, today_cr)
         dt = datetime.strptime(day, "%Y-%m-%d")
         display = dt.strftime("%A, %B %d")
+        day_title = f"AI News — {dt.strftime('%B %d, %Y')} — NewsMarvin"
+        day_desc = f"{len(day_hl)} AI headlines from {display}. Curated from {len(FEEDS)} sources."
         path = render_page(sections, day_hl, display, f"{day}.html", cals,
-                           global_companies, all_sorted)
+                           global_companies, all_sorted,
+                           page_title=day_title, page_description=day_desc)
+        archive_pages.append(day)
         print(f"  {path} ({len(day_hl)} headlines)")
+
+    # Generate sitemap.xml
+    output_dir = PROJECT_DIR / "output"
+    now_iso = now_cr.isoformat()
+    sitemap_urls = [
+        f'  <url><loc>https://newsmarvin.com/</loc><lastmod>{now_iso}</lastmod><changefreq>hourly</changefreq><priority>1.0</priority></url>',
+    ]
+    for day in sorted(archive_pages, reverse=True):
+        sitemap_urls.append(
+            f'  <url><loc>https://newsmarvin.com/{day}.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>'
+        )
+    sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + '\n'.join(sitemap_urls) + '\n</urlset>\n'
+    (output_dir / "sitemap.xml").write_text(sitemap)
+
+    # Generate robots.txt
+    robots = "User-agent: *\nAllow: /\nSitemap: https://newsmarvin.com/sitemap.xml\n"
+    (output_dir / "robots.txt").write_text(robots)
+
+    # Generate _headers (Cloudflare Pages)
+    headers = """/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/index.html
+  Cache-Control: public, max-age=3600
+
+/*.html
+  Cache-Control: public, max-age=86400
+
+/logo.png
+  Cache-Control: public, max-age=604800
+
+/logo-sm.png
+  Cache-Control: public, max-age=604800
+"""
+    (output_dir / "_headers").write_text(headers)
 
     print("Done.\n")
 
