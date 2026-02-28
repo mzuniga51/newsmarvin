@@ -449,30 +449,42 @@ footer {
   .sidebar {
     width: 100%;
     padding: 0 8px;
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    order: 2;
+    display: contents; /* break sidebar apart so children participate in page flex */
   }
-  .main { order: 1; padding: 0 8px; }
-  /* Hide sidebar clutter on mobile — keep Marvin + subscribe */
-  .marvin-wrap { width: 100%; display: flex; gap: 8px; align-items: center; order: -1; }
-  .marvin-wrap .marvin-sidebar { width: 48px; height: 48px; }
+  /* Marvin + subscribe: show at top, before news */
+  .marvin-wrap {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    order: -2;
+    padding: 8px 8px 4px;
+    background: #f0ecf5;
+    border-bottom: 1px solid #d5cce6;
+  }
+  .marvin-wrap .marvin-sidebar { width: 48px; height: 48px; border-radius: 50%; }
   .marvin-wrap .marvin-cta { flex: 1; }
   .marvin-wrap .marvin-says { font-size: 11px; }
-  .marvin-wrap .marvin-form input { font-size: 12px; }
-  .cal { display: none; }
-  .date-range { display: none; }
+  .marvin-wrap .marvin-form { display: flex; gap: 4px; }
+  .marvin-wrap .marvin-form input { font-size: 12px; flex: 1; }
+  .marvin-wrap .marvin-form button { font-size: 12px; }
+  /* Sections nav: show below Marvin, above news */
   .cat-nav {
     width: 100%;
+    padding: 4px 8px;
     margin-bottom: 0;
     display: flex;
     flex-wrap: wrap;
     gap: 4px 12px;
+    order: -1;
   }
   .cat-nav h3 { width: 100%; margin-bottom: 2px; }
   .cat-nav a { display: inline; font-size: 11px; padding: 0; }
+  /* Hide the rest of sidebar on mobile */
+  .sidebar > h3 { display: none; }
+  .cal { display: none; }
+  .date-range { display: none; }
+  /* Main content */
+  .main { order: 1; padding: 0 8px; }
   /* Compact header */
   header .inner { padding: 0 8px; }
   header .tagline { display: none; }
