@@ -540,7 +540,7 @@ MIN_CLASSIFICATION_SCORE = 1.0
 
 # Maximum items per category — keeps the feed focused on the best stories.
 # Ranked by: multi-source coverage first, then source tier, then recency.
-MAX_ITEMS_PER_CATEGORY = 15
+MAX_ITEMS_PER_CATEGORY = 10
 
 # ---------------------------------------------------------------------------
 # Top News — Editorially promoted stories
@@ -615,6 +615,7 @@ DEDUP_ENTITIES = [
     "sam altman", "elon musk", "jensen huang", "zuckerberg", "satya nadella",
     "dario amodei", "amodei", "ilya sutskever",
     "stargate", "eu", "congress", "china",
+    "pentagon", "dorsey", "block ", "square",
 ]
 
 # Entity aliases: different forms that refer to the same entity.
@@ -622,6 +623,9 @@ DEDUP_ENTITIES = [
 DEDUP_ENTITY_ALIASES = {
     "chinese": "china",
     "chinas": "china",
+    "department of defense": "pentagon",
+    "defense department": "pentagon",
+    "dod": "pentagon",
 }
 
 # ---------------------------------------------------------------------------

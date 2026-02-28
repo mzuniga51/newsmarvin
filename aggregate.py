@@ -179,7 +179,7 @@ def dedup_key(url, title):
 # Source priority: lower = preferred when deduplicating
 SOURCE_TIER = {}
 for _name in FEEDS:
-    if _name in TIER2_SOURCES:
+    if _name in TIER2_SOURCES or _name.startswith("Google News"):
         SOURCE_TIER[_name] = 2
     elif _name in ("TechCrunch AI", "The Verge AI", "Wired AI",
                     "The Register AI", "AI News", "InfoQ AI/ML",
@@ -246,23 +246,74 @@ def story_overlap(key_a, key_b, ent_a, ent_b):
     return base
 
 
-def dedup_similar(headlines):
+def dedup_similar(headlines, llm_clusters=None):
     for h in headlines:
         h["_story_key"] = extract_story_key(h["title"])
         h["_entities"] = extract_entities(h["title"])
 
-    clusters = []
-    for h in headlines:
-        placed = False
-        for cluster in clusters:
-            rep = cluster[0]
-            if story_overlap(h["_story_key"], rep["_story_key"],
-                             h["_entities"], rep["_entities"]) >= DEDUP_SIMILARITY_THRESHOLD:
-                cluster.append(h)
-                placed = True
-                break
-        if not placed:
-            clusters.append([h])
+    # Build clusters: LLM groups first, then keyword fallback for ungrouped
+    if llm_clusters:
+        # Group by LLM cluster ID
+        from collections import OrderedDict
+        llm_groups = OrderedDict()
+        ungrouped = []
+        for i, h in enumerate(headlines):
+            cid = llm_clusters.get(i)
+            if cid is not None:
+                llm_groups.setdefault(cid, []).append(h)
+            else:
+                ungrouped.append(h)
+
+        clusters = list(llm_groups.values())
+
+        # Post-LLM merge: merge clusters whose representatives are clearly the same story
+        # Only compares cluster representatives (best article) with a higher threshold
+        POST_MERGE_THRESHOLD = 0.45
+        merged_any = True
+        while merged_any:
+            merged_any = False
+            i = 0
+            while i < len(clusters):
+                j = i + 1
+                while j < len(clusters):
+                    rep_i = clusters[i][0]
+                    rep_j = clusters[j][0]
+                    overlap = story_overlap(rep_i["_story_key"], rep_j["_story_key"],
+                                            rep_i["_entities"], rep_j["_entities"])
+                    if overlap >= POST_MERGE_THRESHOLD:
+                        clusters[i].extend(clusters[j])
+                        clusters.pop(j)
+                        merged_any = True
+                    else:
+                        j += 1
+                i += 1
+
+        # Try to place ungrouped into existing clusters via keyword similarity
+        for h in ungrouped:
+            placed = False
+            for cluster in clusters:
+                rep = cluster[0]
+                if story_overlap(h["_story_key"], rep["_story_key"],
+                                 h["_entities"], rep["_entities"]) >= DEDUP_SIMILARITY_THRESHOLD:
+                    cluster.append(h)
+                    placed = True
+                    break
+            if not placed:
+                clusters.append([h])
+    else:
+        # Pure keyword fallback
+        clusters = []
+        for h in headlines:
+            placed = False
+            for cluster in clusters:
+                rep = cluster[0]
+                if story_overlap(h["_story_key"], rep["_story_key"],
+                                 h["_entities"], rep["_entities"]) >= DEDUP_SIMILARITY_THRESHOLD:
+                    cluster.append(h)
+                    placed = True
+                    break
+            if not placed:
+                clusters.append([h])
 
     result = []
     deduped = 0
@@ -270,7 +321,7 @@ def dedup_similar(headlines):
         cluster.sort(key=lambda h: (SOURCE_TIER.get(h.get("_feed_source", h["source"]), 2), h["published"]))
         best = cluster[0]
         if len(cluster) > 1:
-            best["_also_covered_by"] = [c["source"] for c in cluster[1:]]
+            best["_also_covered_by"] = list({c["source"] for c in cluster[1:]} - {best["source"]})
             deduped += len(cluster) - 1
         result.append(best)
 
@@ -282,7 +333,17 @@ def dedup_similar(headlines):
     tier0 = {"OpenAI", "Google DeepMind", "Hugging Face", "NVIDIA Blog",
              "Microsoft Research", "Meta Research"}
     tier1_sources = {"TechCrunch AI", "The Verge AI", "Wired AI", "The Register AI",
-                     "The Decoder", "MIT Tech Review", "Ars Technica"}
+                     "The Decoder", "MIT Tech Review", "Ars Technica",
+                     "Axios", "Fortune", "CNBC Tech", "BBC Tech", "Guardian Tech",
+                     "VentureBeat AI", "ZDNet AI", "Futurism AI", "InfoQ AI/ML"}
+    # Google News articles use the publisher name as source, so check against
+    # known quality publishers that may appear via Google News feeds
+    google_news_quality = {
+        "reuters", "ap news", "associated press", "cbs news", "nbc news",
+        "abc news", "cnbc", "bbc", "the guardian", "pcmag", "defense one",
+        "politico", "the hill", "bloomberg", "time",
+    }
+
     for h in result:
         h.pop("_story_key", None)
         h.pop("_entities", None)
@@ -291,7 +352,12 @@ def dedup_similar(headlines):
         all_sources = {h["source"]} | set(also)
 
         # Coverage by quality outlets (not just Google News reprints)
+        # Check both direct feed names AND Google News publisher names
         quality_sources = all_sources & (tier0 | tier1_sources)
+        # Also count Google News publishers that are quality outlets
+        for s in all_sources:
+            if s.lower() in google_news_quality:
+                quality_sources.add(s)
         if len(quality_sources) >= 3:
             score += 2
         elif len(quality_sources) >= 2:
@@ -311,6 +377,10 @@ def dedup_similar(headlines):
             if sig in lower:
                 score += 1
                 break
+
+        # LLM importance boost: major stories get a point
+        if (h.get("_importance") or 2) >= 3:
+            score += 1
 
         h["_breaking"] = score >= 2
 
@@ -359,6 +429,16 @@ Known companies (use these names when possible): {companies_text}
 For each article return:
 - "category": best matching category name, or null if it doesn't fit
 - "companies": array of company/org identifiers mentioned (lowercase, no spaces). Use known names above when applicable. For new companies not in the list, use a short lowercase slug (e.g. "perplexity", "cursor", "replit").
+- "importance": 1, 2, or 3:
+  1 = TRIVIAL: listicles, tips/tricks, minor updates, generic commentary, "what is AI?" explainers, SEO content, opinion pieces with no news value, product reviews of minor tools
+  2 = NORMAL: standard industry news, product updates, company announcements, meaningful analysis
+  3 = MAJOR: breaking news, significant industry shifts, major product launches, large funding rounds ($500M+), policy changes affecting the industry, mass layoffs at major companies
+- "story": a short 2-5 word lowercase slug identifying the specific real-world event or story. Articles about the SAME event/development MUST use the SAME slug. Examples:
+  - "Pentagon threatens Anthropic" / "Anthropic refuses Pentagon" / "Congress reacts to Anthropic fight" → "pentagon-anthropic-dispute"
+  - "Block lays off half its staff" / "Jack Dorsey cuts Block workforce" → "block-mass-layoffs"
+  - "OpenAI raises $110B" / "Amazon backs OpenAI round" → "openai-110b-funding"
+  - Op-eds and reactions about an event use the same slug as that event
+  - Different events at the same company get different slugs: "anthropic-vercept-acquisition" vs "pentagon-anthropic-dispute"
 
 Rules:
 - Classify based on the PRIMARY topic, not incidental keyword mentions
@@ -368,8 +448,9 @@ Rules:
 - Return null category for promotional content, ads, paywalled/subscription-required articles, or articles that don't clearly fit
 - If the title or description says "subscribe", "sign in to read", "for subscribers", "premium", or similar paywall language, return null
 - Only tag companies that are a meaningful subject of the article, not passing mentions
+- Use CONSISTENT story slugs across all articles — this is critical for deduplication
 
-Return ONLY a JSON array of objects with "id", "category", and "companies" fields. No other text."""
+Return ONLY a JSON array of objects with "id", "category", "companies", "importance", and "story" fields. No other text."""
 
     # Prepare article data
     articles = []
@@ -380,8 +461,8 @@ Return ONLY a JSON array of objects with "id", "category", and "companies" field
             "description": h.get("_description", "")[:200],
         })
 
-    # Batch into chunks of 100
-    batch_size = 100
+    # Batch into chunks of 75 (story field adds output tokens)
+    batch_size = 75
     results = {}
     client = anthropic.Anthropic(api_key=api_key)
 
@@ -392,7 +473,7 @@ Return ONLY a JSON array of objects with "id", "category", and "companies" field
         try:
             response = client.messages.create(
                 model=LLM_MODEL,
-                max_tokens=4096,
+                max_tokens=16384,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_msg}],
             )
@@ -408,19 +489,26 @@ Return ONLY a JSON array of objects with "id", "category", and "companies" field
                         results[article_id] = {
                             "category": item.get("category"),
                             "companies": item.get("companies", []),
+                            "importance": item.get("importance", 2),
+                            "story": item.get("story"),
                         }
         except Exception as e:
             print(f"  WARNING: Haiku batch {start}-{start+len(batch)} failed: {e}")
             continue
 
-    # Apply Haiku classifications and company tags
+    # Apply Haiku classifications, company tags, and importance
     valid_categories = {cat["name"] for cat in CATEGORIES}
     reclassified = 0
     nulled = 0
+    trivial = 0
     for i, h in enumerate(headlines):
         if i in results:
             r = results[i]
             new_cat = r["category"]
+            importance = r.get("importance", 2)
+            h["_importance"] = importance
+            h["_story_key_llm"] = r.get("story")
+
             if new_cat is None:
                 if h["category"] is not None:
                     nulled += 1
@@ -431,8 +519,13 @@ Return ONLY a JSON array of objects with "id", "category", and "companies" field
             # Override companies with Haiku's tags (more context-aware)
             if r["companies"]:
                 h["companies"] = sorted(set(r["companies"]))
+            # Mark trivial articles — they'll be deprioritized in section building
+            if importance == 1:
+                trivial += 1
+        else:
+            h["_importance"] = 2  # default for unclassified
 
-    print(f"  Haiku: {reclassified} reclassified, {nulled} dropped, "
+    print(f"  Haiku: {reclassified} reclassified, {nulled} dropped, {trivial} trivial filtered, "
           f"{len(headlines) - len(results)} unchanged (kept keyword)")
 
 
@@ -642,10 +735,11 @@ def build_sections(headlines):
     ))
     top_news = top_news[:TOP_NEWS_MAX_ITEMS]
 
-    # Cap every category: rank by coverage + source tier + recency, keep top N
+    # Cap every category: rank by importance + coverage + source tier + recency, keep top N
     for cat in by_cat:
         items = by_cat[cat]
         items.sort(key=lambda h: (
+            -(h.get("_importance") or 2),  # Major stories first
             -len(h.get("_also_covered_by", [])),
             SOURCE_TIER.get(h.get("_feed_source", h["source"]), 2),
             -h["published"].timestamp(),
@@ -742,7 +836,48 @@ def main():
         h.pop("_description", None)
 
     print(f"\nTotal: {len(headlines)} headlines (before dedup)")
-    headlines = dedup_similar(headlines)
+
+    # Build LLM clusters from story keys assigned during classification
+    # Story keys from different batches may use slightly different slugs for the same story
+    # (e.g., "pentagon-anthropic-dispute" vs "anthropic-pentagon-standoff")
+    # Normalize by fuzzy-matching keys that share 50%+ of their words
+    raw_keys = {}
+    for i, h in enumerate(headlines):
+        sk = h.get("_story_key_llm")
+        if sk:
+            raw_keys[i] = sk.lower().strip()
+
+    # Normalize: group similar story keys
+    key_groups = {}  # canonical key → set of variant keys
+    for sk in set(raw_keys.values()):
+        words = set(re.findall(r'[a-z0-9]+', sk))
+        placed = False
+        for canonical, variants in key_groups.items():
+            canon_words = set(re.findall(r'[a-z0-9]+', canonical))
+            shared = words & canon_words
+            smaller = min(len(words), len(canon_words))
+            if smaller > 0 and len(shared) >= 2 and len(shared) / smaller >= 0.5:
+                variants.add(sk)
+                placed = True
+                break
+        if not placed:
+            key_groups[sk] = {sk}
+
+    # Build normalize map: variant → canonical
+    normalize = {}
+    for canonical, variants in key_groups.items():
+        for v in variants:
+            normalize[v] = canonical
+
+    llm_clusters = {}
+    for i, sk in raw_keys.items():
+        llm_clusters[i] = normalize.get(sk, sk)
+
+    if llm_clusters:
+        unique_stories = len(set(llm_clusters.values()))
+        print(f"  LLM story keys: {unique_stories} unique stories from {len(llm_clusters)} headlines")
+
+    headlines = dedup_similar(headlines, llm_clusters)
     print(f"After dedup: {len(headlines)} headlines")
 
     by_day = group_by_day(headlines)

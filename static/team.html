@@ -49,7 +49,7 @@ body {
   animation: fadeIn 1s ease 1s forwards;
 }
 #start-screen .click-hint {
-  font-size: 12px;
+  font-size: 20px;
   color: #666;
   margin-top: 40px;
   opacity: 0;
@@ -76,16 +76,16 @@ body {
 /* Character photo — floating on black */
 .slide-photo {
   position: absolute;
-  top: 50%;
+  top: 40%;
   left: 50%;
   width: 340px;
   height: 340px;
-  margin-top: -220px;
+  margin-top: -200px;
   margin-left: -170px;
   background-size: cover;
   background-position: center center;
-  border: 4px solid #d4a017;
-  box-shadow: 0 0 60px rgba(212,160,23,0.3), 0 20px 80px rgba(0,0,0,0.8);
+  border: 4px solid #826eb4;
+  box-shadow: 0 0 60px rgba(130,110,180,0.3), 0 20px 80px rgba(0,0,0,0.8);
   filter: grayscale(30%) contrast(1.1);
   transform: scale(0.8) rotate(-3deg);
   opacity: 0;
@@ -106,7 +106,7 @@ body {
   left: 0;
   right: 0;
   height: 6px;
-  background: #d4a017;
+  background: #826eb4;
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
@@ -118,7 +118,7 @@ body {
 /* Text block — below the floating photo */
 .slide-text {
   position: absolute;
-  bottom: 60px;
+  bottom: 140px;
   left: 0;
   right: 0;
   text-align: center;
@@ -145,7 +145,7 @@ body {
 .slide-role {
   font-family: 'Bebas Neue', Impact, sans-serif;
   font-size: 24px;
-  color: #d4a017;
+  color: #826eb4;
   text-transform: uppercase;
   letter-spacing: 8px;
   margin-top: 6px;
@@ -159,7 +159,7 @@ body {
 }
 
 .slide-tagline {
-  font-size: 14px;
+  font-size: 22px;
   color: rgba(255,255,255,0.5);
   font-style: italic;
   margin-top: 12px;
@@ -190,7 +190,7 @@ body {
   top: 0;
   left: 0;
   height: 3px;
-  background: #d4a017;
+  background: #826eb4;
   z-index: 200;
   width: 0;
   transition: width 0.3s ease;
@@ -208,19 +208,19 @@ body {
 #finale.active { display: block; }
 
 .finale-inner {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 60px 30px;
 }
 
 .finale-header {
   text-align: center;
-  margin-bottom: 50px;
+  margin-bottom: 40px;
 }
 .finale-header h1 {
   font-family: 'Bebas Neue', Impact, sans-serif;
   font-size: 52px;
-  color: #d4a017;
+  color: #826eb4;
   letter-spacing: 4px;
   text-transform: uppercase;
 }
@@ -230,11 +230,25 @@ body {
   margin-top: 8px;
 }
 
+.finale-body {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+.finale-video-col {
+  flex: 0 0 320px;
+  position: sticky;
+  top: 30px;
+  align-self: flex-start;
+  text-align: center;
+}
+
 .finale-grid {
+  flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 20px;
-  margin-bottom: 40px;
 }
 
 .finale-member {
@@ -263,7 +277,7 @@ body {
 .finale-member.visible:nth-child(7) { opacity: 1; transform: translateY(0) rotate(-1.5deg); margin-top: 10px; }
 
 .finale-member:hover {
-  border-color: #d4a017;
+  border-color: #826eb4;
   z-index: 10;
   transform: scale(1.05) rotate(0deg) !important;
 }
@@ -272,7 +286,7 @@ body {
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
-  border: 3px solid #d4a017;
+  border: 3px solid #826eb4;
   margin-bottom: 12px;
 }
 .finale-photo img {
@@ -294,10 +308,10 @@ body {
   text-transform: uppercase;
 }
 .finale-name a { color: #fff; text-decoration: none; }
-.finale-name a:hover { color: #d4a017; }
+.finale-name a:hover { color: #826eb4; }
 .finale-role-text {
   font-size: 10px;
-  color: #d4a017;
+  color: #826eb4;
   text-transform: uppercase;
   letter-spacing: 3px;
   margin-bottom: 8px;
@@ -308,7 +322,9 @@ body {
   line-height: 1.5;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 900px) {
+  .finale-body { flex-direction: column; }
+  .finale-video-col { flex: none; position: static; }
   .finale-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 450px) {
@@ -330,7 +346,7 @@ body {
 .finale-footer a {
   display: inline-block;
   margin-top: 20px;
-  color: #d4a017;
+  color: #826eb4;
   text-decoration: none;
   font-family: 'Bebas Neue', Impact, sans-serif;
   font-size: 18px;
@@ -341,18 +357,18 @@ body {
 
 /* Blinking motivational button */
 .blink-btn {
-  color: #d4a017;
+  color: #826eb4;
   font-family: 'Bebas Neue', Impact, sans-serif;
   font-size: 20px;
   letter-spacing: 3px;
   text-transform: uppercase;
-  border: 2px solid #d4a017;
+  border: 2px solid #826eb4;
   padding: 8px 20px;
   display: inline-block;
   animation: blinker 1s ease-in-out infinite;
 }
 .blink-btn:hover {
-  background: #d4a017;
+  background: #826eb4;
   color: #000;
   animation: none;
 }
@@ -505,11 +521,16 @@ body {
     <div class="finale-header">
       <h1>The Dev Team</h1>
       <p>six pomeranians. one english setter. one mission. zero documentation.</p>
-      <div style="margin-top:20px;">
+    </div>
+
+    <div class="finale-body">
+
+    <div class="finale-video-col">
+      <div style="margin-bottom:16px;">
         <span class="blink-btn">The Company's Motivational Video</span>
       </div>
-      <div id="marvin-video" style="margin-top:16px;">
-        <video id="marvin-vid" width="320" style="border:3px solid #d4a017;box-shadow:0 0 30px rgba(212,160,23,0.3);" controls>
+      <div id="marvin-video">
+        <video id="marvin-vid" width="320" style="border:3px solid #826eb4;box-shadow:0 0 30px rgba(130,110,180,0.3);" controls>
           <source src="marvin-motivation.mp4" type="video/mp4">
         </video>
       </div>
@@ -563,10 +584,11 @@ body {
       <div class="finale-photo"><img src="team-panko.jpg" alt="Panko"></div>
       <div class="finale-name">Panko</div>
       <div class="finale-role-text">Remote DevOps &middot; Istanbul</div>
-      <div class="finale-bio">Works remotely from Istanbul. Nobody on the team understands a word he says, and nobody can figure out why. Genuinely confused about most everything, including how he got here. No one is quite sure how he got to the team. His pull requests arrive at 3 AM Istanbul time and somehow always pass CI.</div>
+      <div class="finale-bio">Works remotely from Istanbul. Nobody knows how he got to the team or what language is he barking. Genuinely confused about most everything. His pull requests arrive at 3 AM Istanbul time and somehow always pass CI.</div>
     </div>
 
     </div><!-- /finale-grid -->
+    </div><!-- /finale-body -->
 
     <div class="finale-footer">
       <p>all seven are real dogs. no humans were involved in the making of this news aggregator.*<br>
@@ -622,9 +644,16 @@ function showSlide(index) {
       setTimeout(() => m.classList.add('visible'), 200 + i * 150);
     });
 
-    // Auto-play motivational video
+    // Fade music down and play motivational video
     setTimeout(() => {
-      music.pause();
+      const fade = setInterval(() => {
+        if (music.volume > 0.05) {
+          music.volume = Math.max(0, music.volume - 0.05);
+        } else {
+          music.volume = 0;
+          clearInterval(fade);
+        }
+      }, 100);
       document.getElementById('marvin-vid').play().catch(() => {});
     }, 500);
     return;
