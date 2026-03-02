@@ -526,10 +526,21 @@ CATEGORIES = [
         ],
         "exclude": [],
     },
+
+    # -----------------------------------------------------------------
+    # 10. OTHER — Catch-all for uncategorized AI news
+    # -----------------------------------------------------------------
+    {
+        "name": "Other",
+        "description": "AI news that doesn't fit neatly into the above categories. General industry commentary, analysis, trends, and miscellaneous AI content.",
+        "strong": [],
+        "weak": [],
+        "exclude": [],
+    },
 ]
 
-# Headlines that don't score in any category are dropped (no catch-all).
-DEFAULT_CATEGORY = None
+# Headlines that don't score in any category go to Other.
+DEFAULT_CATEGORY = "Other"
 
 # Minimum score required for classification. Articles scoring below this
 # are treated as unclassifiable and dropped. Prevents weak description-only
@@ -540,7 +551,7 @@ MIN_CLASSIFICATION_SCORE = 1.0
 
 # Maximum items per category — keeps the feed focused on the best stories.
 # Ranked by: multi-source coverage first, then source tier, then recency.
-MAX_ITEMS_PER_CATEGORY = 10
+MAX_ITEMS_PER_CATEGORY = 12
 
 # ---------------------------------------------------------------------------
 # Top News — Editorially promoted stories

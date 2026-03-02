@@ -420,6 +420,7 @@ def classify_with_haiku(headlines):
     companies_text = ", ".join(known_companies)
 
     system_prompt = f"""You classify AI/tech news articles into categories and tag mentioned companies.
+IMPORTANT: Prefer a specific category over "Other". Only use "Other" when no specific category fits at all.
 
 Categories:
 {categories_text}
@@ -445,8 +446,9 @@ Rules:
 - "Releases" means a product/model/API was SHIPPED or made available, not a policy paper, press release, or report
 - "People" is about specific individuals changing roles, not general workforce news
 - "Research" is about scientific papers, studies, benchmarks — not product announcements that mention research
-- Return null category for promotional content, ads, paywalled/subscription-required articles, or articles that don't clearly fit
+- ONLY return null for: promotional content, ads, paywalled articles, local news with no AI substance, or articles that are genuinely not about AI/tech
 - If the title or description says "subscribe", "sign in to read", "for subscribers", "premium", or similar paywall language, return null
+- When in doubt between null and a category, USE "Other" — we prefer showing articles over hiding them
 - Only tag companies that are a meaningful subject of the article, not passing mentions
 - Use CONSISTENT story slugs across all articles — this is critical for deduplication
 
@@ -513,9 +515,13 @@ Return ONLY a JSON array of objects with "id", "category", "companies", "importa
                 if h["category"] is not None:
                     nulled += 1
                 h["category"] = DEFAULT_CATEGORY
-            elif new_cat in valid_categories and new_cat != h["category"]:
-                reclassified += 1
+            elif new_cat in valid_categories:
+                if new_cat != h["category"]:
+                    reclassified += 1
                 h["category"] = new_cat
+            else:
+                # Haiku returned an invalid category name — use Other
+                h["category"] = DEFAULT_CATEGORY
             # Override companies with Haiku's tags (more context-aware)
             if r["companies"]:
                 h["companies"] = sorted(set(r["companies"]))
@@ -524,6 +530,9 @@ Return ONLY a JSON array of objects with "id", "category", "companies", "importa
                 trivial += 1
         else:
             h["_importance"] = 2  # default for unclassified
+            # Ensure keyword-only articles also get a category
+            if h["category"] is None:
+                h["category"] = DEFAULT_CATEGORY
 
     print(f"  Haiku: {reclassified} reclassified, {nulled} dropped, {trivial} trivial filtered, "
           f"{len(headlines) - len(results)} unchanged (kept keyword)")
@@ -572,6 +581,10 @@ def fetch_feeds():
                 desc = (entry.get("summary") or entry.get("description") or "").strip()
                 # Strip HTML tags from description
                 desc = re.sub(r'<[^>]+>', ' ', desc)
+                # Remove bare URLs (common in HN, Reddit feeds — wastes token budget)
+                desc = re.sub(r'https?://\S+', '', desc)
+                # Collapse whitespace
+                desc = re.sub(r'\s+', ' ', desc).strip()
                 # Truncate to first ~500 chars (enough for classification, not wasteful)
                 desc = desc[:500]
 
