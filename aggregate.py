@@ -408,66 +408,97 @@ def classify_with_haiku(headlines):
         print("  WARNING: anthropic package not installed, keeping keyword classifications")
         return
 
-    # Build category list for the prompt
-    cat_lines = []
-    for i, cat in enumerate(CATEGORIES, 1):
-        desc = cat.get("description", cat["name"])
-        cat_lines.append(f"{i}. {cat['name']} — {desc}")
-    categories_text = "\n".join(cat_lines)
+    # Pre-filter obvious junk before wasting LLM tokens
+    JUNK_PATTERNS = re.compile(
+        r'(?i)\b('
+        r'county board agenda|faculty senate|campus event|'
+        r'stocks? to (?:buy|consider|watch)|stock pick|'
+        r'side hustle|make money with|earn \$|'
+        r'what is ai\??|introduction to ai|ai for beginners|'
+        r'how to use chatgpt to|i asked chatgpt|chatgpt says|'
+        r'artificial intelligence in (?:cancer|healthcare|nursing|dental)|'
+        r'sign in to read|for subscribers only|premium content'
+        r')\b'
+    )
+    for h in headlines:
+        title = h["title"]
+        desc = h.get("_description", "")
+        if JUNK_PATTERNS.search(title) or JUNK_PATTERNS.search(desc[:200]):
+            h["_skip_llm"] = True
+            h["category"] = None  # will be dropped
 
-    # Build known companies list for normalization
+    # Build known companies list
     known_companies = sorted(COMPANIES.keys())
     companies_text = ", ".join(known_companies)
 
-    system_prompt = f"""You classify AI/tech news articles into categories and tag mentioned companies.
-IMPORTANT: Prefer a specific category over "Other". Only use "Other" when no specific category fits at all.
+    # ---- PASS 1: Classification (category + companies) ----
+    classify_prompt = f"""Classify AI/tech news articles. Return JSON array with "id", "category", "companies".
 
-Categories:
-{categories_text}
+Categories (pick ONE):
+- Releases: product/model/API/feature shipped or made available, new tools, new open-source projects
+- People: specific individuals hired, fired, resigned, appointed (NOT interviews or opinions BY people)
+- Vibe Coding: AI-assisted coding, "I built X with AI", code generation tools, developer workflow with AI
+- Rumors & Speculation: unconfirmed reports, leaks, "reportedly", "expected to"
+- Business & Money: funding, revenue, layoffs, market analysis, enterprise trends, datacenter/cloud infrastructure, corporate strategy
+- Policy & Regulation: government actions, laws, military/defense AI use, bans, regulatory moves
+- Security & Privacy: hacking, exploits, breaches, surveillance, scams, privacy concerns, ads tracking users
+- Research: scientific papers, studies, datasets, benchmarks from labs/universities
+- Ethics & Philosophy: moral debates, societal impact, existential risk, bias, job displacement fears
+- Fun & Weird: bizarre, humorous, unexpected AI stories, memes, unusual use cases
+- Other: AI news that doesn't fit above — use ONLY as last resort, prefer a specific category
+- null: not about AI/tech, or pure ads/spam/paywall
 
-Known companies (use these names when possible): {companies_text}
+Known companies: {companies_text}
 
-For each article return:
-- "category": best matching category name, or null if it doesn't fit
-- "companies": array of company/org identifiers mentioned (lowercase, no spaces). Use known names above when applicable. For new companies not in the list, use a short lowercase slug (e.g. "perplexity", "cursor", "replit").
-- "importance": 1, 2, or 3:
-  1 = TRIVIAL: listicles, tips/tricks, minor updates, generic commentary, "what is AI?" explainers, SEO content, opinion pieces with no news value, product reviews of minor tools
-  2 = NORMAL: standard industry news, product updates, company announcements, meaningful analysis
-  3 = MAJOR: breaking news, significant industry shifts, major product launches, large funding rounds ($500M+), policy changes affecting the industry, mass layoffs at major companies
-- "story": a short 2-5 word lowercase slug identifying the specific real-world event or story. Articles about the SAME event/development MUST use the SAME slug. Examples:
-  - "Pentagon threatens Anthropic" / "Anthropic refuses Pentagon" / "Congress reacts to Anthropic fight" → "pentagon-anthropic-dispute"
-  - "Block lays off half its staff" / "Jack Dorsey cuts Block workforce" → "block-mass-layoffs"
-  - "OpenAI raises $110B" / "Amazon backs OpenAI round" → "openai-110b-funding"
-  - Op-eds and reactions about an event use the same slug as that event
-  - Different events at the same company get different slugs: "anthropic-vercept-acquisition" vs "pentagon-anthropic-dispute"
+Examples:
+{{"title":"Trump bans Anthropic from government","category":"Policy & Regulation","companies":["anthropic"]}}
+{{"title":"OpenAI launches GPT-5","category":"Releases","companies":["openai"]}}
+{{"title":"I built a SaaS in a weekend with Claude","category":"Vibe Coding","companies":["anthropic"]}}
+{{"title":"Block cuts half its staff in AI pivot","category":"Business & Money","companies":["block"]}}
+{{"title":"Dario Amodei on AI red lines (interview)","category":"Ethics & Philosophy","companies":["anthropic"]}}
+{{"title":"AWS datacenter hit in Middle East strikes","category":"Business & Money","companies":["amazon"]}}
+{{"title":"AI-generated film pulled from theaters","category":"Fun & Weird","companies":[]}}
+{{"title":"OpenAI hires iPhone designer Jony Ive","category":"People","companies":["openai"]}}
+{{"title":"Hackers exploit GitHub Actions with AI bot","category":"Security & Privacy","companies":["microsoft"]}}
+{{"title":"ElevenLabs tops speech-to-text benchmark","category":"Releases","companies":["elevenlabs","google"]}}
+{{"title":"Cancel ChatGPT movement grows after Pentagon deal","category":"Business & Money","companies":["openai"]}}
+{{"title":"SaaS-pocalypse: AI disrupting enterprise software","category":"Business & Money","companies":[]}}
+{{"title":"Why XML tags matter for Claude prompts","category":"Vibe Coding","companies":["anthropic"]}}
+{{"title":"New dataset for animating drawings","category":"Research","companies":["meta"]}}
 
-Rules:
-- Classify based on the PRIMARY topic, not incidental keyword mentions
-- "Releases" means a product/model/API was SHIPPED or made available, not a policy paper, press release, or report
-- "People" is about specific individuals changing roles, not general workforce news
-- "Research" is about scientific papers, studies, benchmarks — not product announcements that mention research
-- ONLY return null for: promotional content, ads, paywalled articles, local news with no AI substance, or articles that are genuinely not about AI/tech
-- If the title or description says "subscribe", "sign in to read", "for subscribers", "premium", or similar paywall language, return null
-- When in doubt between null and a category, USE "Other" — we prefer showing articles over hiding them
-- Only tag companies that are a meaningful subject of the article, not passing mentions
-- Use CONSISTENT story slugs across all articles — this is critical for deduplication
+Return ONLY a JSON array of {{"id","category","companies"}}. No other text."""
 
-Return ONLY a JSON array of objects with "id", "category", "companies", "importance", and "story" fields. No other text."""
+    # ---- PASS 2: Story dedup + importance ----
+    dedup_prompt = """Group these articles by real-world event. Return JSON array with "id", "story", "importance".
 
-    # Prepare article data
+- "story": 2-5 word lowercase slug for the event. Same event = same slug across ALL articles.
+- "importance": 1=trivial/listicle/SEO, 2=normal news, 3=major breaking news
+
+Examples of consistent slugs:
+- "Pentagon bans Anthropic" / "Trump orders Anthropic ban" / "Anthropic stock drops after ban" → "anthropic-pentagon-ban"
+- "OpenAI launches GPT-5" / "GPT-5 benchmarks released" → "openai-gpt5-launch"
+- Articles reacting to the same event get the same slug.
+
+Return ONLY a JSON array of {"id","story","importance"}. No other text."""
+
+    # Prepare article data (skip junk-filtered articles)
     articles = []
+    article_idx_map = {}  # maps position in articles list → headline index
     for i, h in enumerate(headlines):
+        if h.get("_skip_llm"):
+            continue
+        article_idx_map[len(articles)] = i
         articles.append({
             "id": i,
             "title": h["title"],
             "description": h.get("_description", "")[:200],
         })
 
-    # Batch into chunks of 75 (story field adds output tokens)
-    batch_size = 75
+    batch_size = 100  # simpler output = can handle bigger batches
     results = {}
     client = anthropic.Anthropic(api_key=api_key)
 
+    # Pass 1: Classification
     for start in range(0, len(articles), batch_size):
         batch = articles[start:start + batch_size]
         user_msg = json.dumps(batch, ensure_ascii=False)
@@ -475,13 +506,12 @@ Return ONLY a JSON array of objects with "id", "category", "companies", "importa
         try:
             response = client.messages.create(
                 model=LLM_MODEL,
-                max_tokens=16384,
-                system=system_prompt,
+                max_tokens=4096,
+                system=classify_prompt,
                 messages=[{"role": "user", "content": user_msg}],
             )
 
             text = response.content[0].text
-            # Extract JSON array (might be wrapped in markdown code block)
             json_match = re.search(r'\[.*\]', text, re.DOTALL)
             if json_match:
                 classifications = json.loads(json_match.group())
@@ -491,11 +521,35 @@ Return ONLY a JSON array of objects with "id", "category", "companies", "importa
                         results[article_id] = {
                             "category": item.get("category"),
                             "companies": item.get("companies", []),
-                            "importance": item.get("importance", 2),
-                            "story": item.get("story"),
                         }
         except Exception as e:
-            print(f"  WARNING: Haiku batch {start}-{start+len(batch)} failed: {e}")
+            print(f"  WARNING: classify batch {start}-{start+len(batch)} failed: {e}")
+            continue
+
+    # Pass 2: Story dedup + importance
+    for start in range(0, len(articles), batch_size):
+        batch = articles[start:start + batch_size]
+        user_msg = json.dumps(batch, ensure_ascii=False)
+
+        try:
+            response = client.messages.create(
+                model=LLM_MODEL,
+                max_tokens=4096,
+                system=dedup_prompt,
+                messages=[{"role": "user", "content": user_msg}],
+            )
+
+            text = response.content[0].text
+            json_match = re.search(r'\[.*\]', text, re.DOTALL)
+            if json_match:
+                dedup_results = json.loads(json_match.group())
+                for item in dedup_results:
+                    article_id = item.get("id")
+                    if article_id is not None and article_id in results:
+                        results[article_id]["importance"] = item.get("importance", 2)
+                        results[article_id]["story"] = item.get("story")
+        except Exception as e:
+            print(f"  WARNING: dedup batch {start}-{start+len(batch)} failed: {e}")
             continue
 
     # Apply Haiku classifications, company tags, and importance
@@ -534,8 +588,9 @@ Return ONLY a JSON array of objects with "id", "category", "companies", "importa
             if h["category"] is None:
                 h["category"] = DEFAULT_CATEGORY
 
-    print(f"  Haiku: {reclassified} reclassified, {nulled} dropped, {trivial} trivial filtered, "
-          f"{len(headlines) - len(results)} unchanged (kept keyword)")
+    skipped = sum(1 for h in headlines if h.get("_skip_llm"))
+    print(f"  LLM: {reclassified} reclassified, {nulled} dropped, {trivial} trivial, "
+          f"{skipped} pre-filtered, {len(headlines) - len(results) - skipped} unchanged")
 
 
 def apply_research_gating(headlines):
@@ -851,7 +906,7 @@ def main():
         sys.exit(1)
 
     # LLM classification (overrides keyword-based categories)
-    print("\nClassifying with Haiku...")
+    print(f"\nClassifying with {LLM_MODEL}...")
     classify_with_haiku(headlines)
     apply_research_gating(headlines)
 
