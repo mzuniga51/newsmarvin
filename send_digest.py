@@ -89,13 +89,14 @@ def _html_escape(s):
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
-def build_email(sections, today_str, total_headlines, total_sources):
+def build_email(sections, today_str, total_headlines, total_sources, subscriber_count=0):
     """Build plain text and HTML email matching the website design."""
     display_date = datetime.strptime(today_str, "%Y-%m-%d").strftime("%b %d, %Y")
     subject = f"Marvin AI News — {display_date}"
 
     # Plain text version
-    text_lines = [f"marvin ai news — {display_date}", f"{total_headlines} headlines · {total_sources} sources", ""]
+    sub_text = f" · {subscriber_count}s" if subscriber_count else ""
+    text_lines = [f"marvin ai news — {display_date}", f"{total_headlines} headlines · {total_sources} sources{sub_text}", ""]
 
     for cat_name, headlines in sections:
         text_lines.append(f"{cat_name} ({len(headlines)})")
@@ -173,7 +174,7 @@ def build_email(sections, today_str, total_headlines, total_sources):
 <a href="https://newsmarvin.com" style="color:#fff;text-decoration:none;">marvin ai news</a>
 </div>
 <div style="color:rgba(255,255,255,0.55);font-size:11px;margin-top:2px;font-family:Verdana,Geneva,sans-serif;">
-Your AI news, served raw &middot; {display_date} &middot; {total_headlines} headlines &middot; {total_sources} sources
+Your AI news, served raw &middot; {display_date} &middot; {total_headlines} headlines &middot; {total_sources} sources{f" &middot; {subscriber_count}s" if subscriber_count else ""}
 </div>
 </td>
 </tr></table>
@@ -283,15 +284,15 @@ def main():
 
     print(f"\nLast 24h: {len(recent_hl)} headlines in {len(sections)} sections")
 
-    # Build email
-    from config import FEEDS
-    subject, text_body, html_body = build_email(sections, today_str, len(recent_hl), len(FEEDS))
-    print(f"Subject: {subject}")
-
     # Fetch subscribers
     print("\nFetching subscribers...")
     subscribers = fetch_subscribers()
     print(f"Subscribers: {len(subscribers)}")
+
+    # Build email
+    from config import FEEDS
+    subject, text_body, html_body = build_email(sections, today_str, len(recent_hl), len(FEEDS), len(subscribers))
+    print(f"Subject: {subject}")
 
     if not subscribers:
         print("No subscribers. Done.")
