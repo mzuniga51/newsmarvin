@@ -12,6 +12,7 @@ import re
 import json
 import hashlib
 import calendar
+import html
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 from pathlib import Path
@@ -34,6 +35,25 @@ from config import (
 
 CR_TZ = timezone(timedelta(hours=TIMEZONE_OFFSET))
 PROJECT_DIR = Path(__file__).parent
+
+def get_subscriber_count():
+    """Fetch subscriber count from Cloudflare KV."""
+    try:
+        acct = os.environ.get("CF_ACCOUNT_ID", "")
+        token = os.environ.get("CF_API_TOKEN", "")
+        ns = os.environ.get("KV_NAMESPACE_ID", "")
+        if not all([acct, token, ns]):
+            return 0
+        r = requests.get(
+            f"https://api.cloudflare.com/client/v4/accounts/{acct}/storage/kv/namespaces/{ns}/keys",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        if r.ok:
+            return r.json().get("result_info", {}).get("count", 0)
+    except Exception:
+        pass
+    return 0
 
 # Pre-compile AI keyword regex with word boundaries
 _AI_RE = re.compile(
@@ -627,13 +647,13 @@ def fetch_feeds():
 
             count = 0
             for entry in feed.entries:
-                title = entry.get("title", "").strip()
+                title = html.unescape(entry.get("title", "")).strip()
                 link = entry.get("link", "").strip()
                 if not title:
                     continue
 
                 # Extract description/summary from RSS for two-pass classification
-                desc = (entry.get("summary") or entry.get("description") or "").strip()
+                desc = html.unescape((entry.get("summary") or entry.get("description") or "")).strip()
                 # Strip HTML tags from description
                 desc = re.sub(r'<[^>]+>', ' ', desc)
                 # Remove bare URLs (common in HN, Reddit feeds — wastes token budget)
@@ -827,7 +847,8 @@ def build_sections(headlines):
 
 def render_page(sections, headlines, display_date, filename, calendars,
                 global_companies=None, all_headlines=None,
-                page_title=None, page_description=None):
+                page_title=None, page_description=None,
+                subscriber_count=0):
     import json
     env = Environment(loader=FileSystemLoader(PROJECT_DIR))
     template = env.get_template("template.html")
@@ -871,6 +892,7 @@ def render_page(sections, headlines, display_date, filename, calendars,
         page_title=page_title,
         page_description=page_description,
         canonical_path=canonical_path,
+        subscriber_count=subscriber_count,
     )
 
     output_dir = PROJECT_DIR / "output"
@@ -883,7 +905,7 @@ def render_page(sections, headlines, display_date, filename, calendars,
                    "team-marvin.jpg", "team-oreo.jpg", "team-papato.jpg",
                    "team-bella.jpg", "team-panda.jpg", "team-choco.jpg",
                    "kill-bill.mp3", "marvin-motivation.mp4",
-                   "team-panko.jpg"):
+                   "team-panko.jpg", "ribbon.png"):
         src = PROJECT_DIR / "static" / asset
         dst = output_dir / asset
         if src.exists():
@@ -969,6 +991,11 @@ def main():
     # Sort all headlines by published time (newest first) for JSON embed
     all_sorted = sorted(headlines, key=lambda h: h["published"], reverse=True)
 
+    # Fetch subscriber count
+    sub_count = get_subscriber_count()
+    if sub_count:
+        print(f"Subscribers: {sub_count}")
+
     # Render index — rolling 24h window
     now_cr = datetime.now(CR_TZ)
     cutoff_24h = now_cr - timedelta(hours=24)
@@ -985,7 +1012,8 @@ def main():
     path = render_page(sections, recent_hl, display, "index.html", cals,
                        global_companies, all_sorted,
                        page_title="AI News Today — NewsMarvin",
-                       page_description=f"Today's {len(recent_hl)} AI headlines from {len(FEEDS)} sources. Deduplicated, ranked, and updated every 4 hours.")
+                       page_description=f"Today's {len(recent_hl)} AI headlines from {len(FEEDS)} sources. Deduplicated, ranked, and updated every 4 hours.",
+                       subscriber_count=sub_count)
     print(f"  {path} ({len(recent_hl)} headlines)")
 
     # Render archive days
@@ -1002,7 +1030,8 @@ def main():
         day_desc = f"{len(day_hl)} AI headlines from {display}. Curated from {len(FEEDS)} sources."
         path = render_page(sections, day_hl, display, f"{day}.html", cals,
                            global_companies, all_sorted,
-                           page_title=day_title, page_description=day_desc)
+                           page_title=day_title, page_description=day_desc,
+                           subscriber_count=sub_count)
         archive_pages.append(day)
         print(f"  {path} ({len(day_hl)} headlines)")
 

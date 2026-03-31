@@ -67,11 +67,25 @@ header .meta {
   overflow: hidden;
   line-height: 0;
 }
-.marvin-sidebar {
+.marvin-pic {
+  position: relative;
   display: block;
   width: 100%;
   max-width: 180px;
   margin: 20px auto 0;
+}
+.marvin-sidebar {
+  display: block;
+  width: 100%;
+}
+.marvin-ribbon {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+  mix-blend-mode: multiply;
 }
 
 /* Layout */
@@ -461,7 +475,9 @@ footer {
     background: #f0ecf5;
     border-bottom: 1px solid #d5cce6;
   }
+  .marvin-wrap .marvin-pic { width: 48px; height: 48px; margin: 0; }
   .marvin-wrap .marvin-sidebar { width: 48px; height: 48px; border-radius: 50%; }
+  .marvin-wrap .marvin-ribbon { display: none; }
   .marvin-wrap .marvin-cta { flex: 1; }
   .marvin-wrap .marvin-says { font-size: 11px; }
   .marvin-wrap .marvin-form { display: flex; gap: 4px; }
@@ -521,7 +537,7 @@ footer {
 <header>
   <div class="inner">
     <h1><a href="index.html">marvin ai news</a> <span class="tagline">— Your AI news, served raw</span></h1>
-    <span class="meta">{{ total_headlines }} headlines &middot; {{ total_sources }} sources</span>
+    <span class="meta">{{ total_headlines }} headlines &middot; {{ total_sources }} sources{% if subscriber_count %} &middot; {{ subscriber_count }}s{% endif %}</span>
   </div>
 </header>
 
@@ -529,7 +545,7 @@ footer {
 
 <aside class="sidebar">
   <div class="marvin-wrap">
-    <a href="team.html" title="???"><img src="logo-email.png" alt="Marvin" class="marvin-sidebar"></a>
+    <a href="team.html" title="In loving memory" class="marvin-pic"><img src="logo-email.png" alt="Marvin" class="marvin-sidebar"><img src="ribbon.png" alt="" class="marvin-ribbon"></a>
     <div class="marvin-cta">
       <div class="marvin-says">Marvin says<br><span>subscribe</span></div>
       <form id="digest-form" class="marvin-form" onsubmit="return submitDigest(event)">
