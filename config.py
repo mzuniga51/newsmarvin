@@ -36,7 +36,6 @@ FEEDS = {
     "Ars Technica": "https://feeds.arstechnica.com/arstechnica/technology-lab",
     "MIT Tech Review": "https://www.technologyreview.com/feed/",
     "The Register AI": "https://www.theregister.com/software/ai_ml/headlines.atom",
-    "Wired AI": "https://www.wired.com/feed/tag/ai/latest/rss",
     "AI News": "https://www.artificialintelligence-news.com/feed/",
     "InfoQ AI/ML": "https://feed.infoq.com/ai-ml-data-eng/",
     "The Decoder": "https://the-decoder.com/feed/",
@@ -684,6 +683,8 @@ GOOGLE_NEWS_BLOCKED_PUBLISHERS = {
     "govtech", "tipranks", "investmentnews",
     # SEO / content farms
     "pymnts", "mashable",
+    # Paywalled / excluded
+    "times of india", "wired",
 }
 
 # ---------------------------------------------------------------------------

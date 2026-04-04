@@ -201,7 +201,7 @@ SOURCE_TIER = {}
 for _name in FEEDS:
     if _name in TIER2_SOURCES or _name.startswith("Google News"):
         SOURCE_TIER[_name] = 2
-    elif _name in ("TechCrunch AI", "The Verge AI", "Wired AI",
+    elif _name in ("TechCrunch AI", "The Verge AI",
                     "The Register AI", "AI News", "InfoQ AI/ML",
                     "The Decoder", "Futurism AI", "ZDNet AI"):
         SOURCE_TIER[_name] = 1
@@ -352,7 +352,7 @@ def dedup_similar(headlines, llm_clusters=None):
     # Breaking = genuinely important stories, not just widely aggregated fluff
     tier0 = {"OpenAI", "Google DeepMind", "Hugging Face", "NVIDIA Blog",
              "Microsoft Research", "Meta Research"}
-    tier1_sources = {"TechCrunch AI", "The Verge AI", "Wired AI", "The Register AI",
+    tier1_sources = {"TechCrunch AI", "The Verge AI", "The Register AI",
                      "The Decoder", "MIT Tech Review", "Ars Technica",
                      "Axios", "Fortune", "CNBC Tech", "BBC Tech", "Guardian Tech",
                      "VentureBeat AI", "ZDNet AI", "Futurism AI", "InfoQ AI/ML"}
