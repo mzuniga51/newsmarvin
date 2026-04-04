@@ -18,7 +18,7 @@ How it works:
 - **Breaking news detection** — stories covered by 3+ quality outlets get promoted to Top News
 - **Source gating** — only trusted sources (universities, labs, journals) can contribute to Research
 
-No database, no JS framework. Python + feedparser + Jinja2 → static HTML on Cloudflare Pages. Updates every 4 hours via GitHub Actions. Free daily email digest at 6 AM.
+No database, no JS framework. Python + feedparser + Jinja2 → static HTML on Cloudflare Pages. Updates daily via GitHub Actions. Free daily email digest at 6 AM.
 
 If this is useful to you too, I'd love to hear about it. Suggestions welcome at zuniga.manuel@gmail.com.
 

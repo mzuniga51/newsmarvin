@@ -1012,7 +1012,7 @@ def main():
     path = render_page(sections, recent_hl, display, "index.html", cals,
                        global_companies, all_sorted,
                        page_title="AI News Today — NewsMarvin",
-                       page_description=f"Today's {len(recent_hl)} AI headlines from {len(FEEDS)} sources. Deduplicated, ranked, and updated every 4 hours.",
+                       page_description=f"Today's {len(recent_hl)} AI headlines from {len(FEEDS)} sources. Deduplicated, ranked, and updated daily.",
                        subscriber_count=sub_count)
     print(f"  {path} ({len(recent_hl)} headlines)")
 

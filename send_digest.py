@@ -36,7 +36,7 @@ CF_ACCOUNT_ID = os.environ.get("CF_ACCOUNT_ID", "")
 CF_API_TOKEN = os.environ.get("CF_API_TOKEN", "")
 KV_NAMESPACE_ID = os.environ.get("KV_NAMESPACE_ID", "")
 
-FROM_EMAIL = "Marvin AI News <morning@mzuniga.com>"
+FROM_EMAIL = "Newsmarvin <morning@mzuniga.com>"
 BATCH_SIZE = 50  # Resend batch limit
 
 
@@ -92,11 +92,11 @@ def _html_escape(s):
 def build_email(sections, today_str, total_headlines, total_sources, subscriber_count=0):
     """Build plain text and HTML email matching the website design."""
     display_date = datetime.strptime(today_str, "%Y-%m-%d").strftime("%b %d, %Y")
-    subject = f"Marvin AI News — {display_date}"
+    subject = f"Newsmarvin — {display_date}"
 
     # Plain text version
     sub_text = f" · {subscriber_count}s" if subscriber_count else ""
-    text_lines = [f"marvin ai news — {display_date}", f"{total_headlines} headlines · {total_sources} sources{sub_text}", ""]
+    text_lines = [f"Newsmarvin — {display_date}", f"{total_headlines} headlines · {total_sources} sources{sub_text}", ""]
 
     for cat_name, headlines in sections:
         text_lines.append(f"{cat_name} ({len(headlines)})")
@@ -111,7 +111,7 @@ def build_email(sections, today_str, total_headlines, total_sources, subscriber_
         text_lines.append("")
 
     text_lines.append("—")
-    text_lines.append("newsmarvin.com · Your AI news, served raw")
+    text_lines.append("newsmarvin.com - Your AI news, served raw")
     text_lines.append("")
     text_lines.append("Unsubscribe: %%UNSUB_URL%%")
     text_body = "\n".join(text_lines)
@@ -171,7 +171,7 @@ def build_email(sections, today_str, total_headlines, total_sources, subscriber_
 <td style="width:70px;vertical-align:middle;">{logo_img}</td>
 <td style="vertical-align:middle;padding-left:14px;">
 <div style="color:#fff;font-size:20px;font-weight:bold;letter-spacing:2px;font-family:Verdana,Geneva,sans-serif;">
-<a href="https://newsmarvin.com" style="color:#fff;text-decoration:none;">marvin ai news</a>
+<a href="https://newsmarvin.com" style="color:#fff;text-decoration:none;">Newsmarvin</a>
 </div>
 <div style="color:rgba(255,255,255,0.55);font-size:11px;margin-top:2px;font-family:Verdana,Geneva,sans-serif;">
 Your AI news, served raw &middot; {display_date} &middot; {total_headlines} headlines &middot; {total_sources} sources{f" &middot; {subscriber_count}s" if subscriber_count else ""}

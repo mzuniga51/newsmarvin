@@ -2,7 +2,7 @@ name: Update Site
 
 on:
   schedule:
-    - cron: '0 */4 * * *'  # Every 4 hours
+    - cron: '0 6 * * *'  # Daily at midnight CST (06:00 UTC)
   workflow_dispatch:        # manual trigger
 
 jobs:

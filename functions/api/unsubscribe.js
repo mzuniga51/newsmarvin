@@ -24,7 +24,7 @@ export async function onRequestGet(context) {
 function page(message, success) {
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Unsubscribe — Marvin AI News</title></head>
+<title>Unsubscribe — Newsmarvin</title></head>
 <body style="margin:0;padding:60px 20px;background:#f6f6f0;font-family:Verdana,Geneva,sans-serif;text-align:center;">
 <div style="max-width:400px;margin:0 auto;">
 <h1 style="font-size:18px;color:${success ? '#826eb4' : '#c00'};">${message}</h1>
