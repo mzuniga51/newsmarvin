@@ -689,7 +689,7 @@ def fetch_feeds():
                 # Pass 2: Keyword classification (may be overridden by LLM)
                 category = categorize(title, desc)
 
-                # For Google News: extract real publisher and clean title
+                # For Google News: extract real publisher, clean title, resolve redirect
                 display_source = source_name
                 display_title = title
                 if source_name.startswith("Google News") and " - " in title:
@@ -697,6 +697,15 @@ def fetch_feeds():
                     if pub:
                         display_source = pub
                         display_title = title.rsplit(" - ", 1)[0].strip()
+                    # Resolve Google News redirect to actual article URL
+                    if "news.google.com" in link:
+                        try:
+                            r = requests.head(link, allow_redirects=True, timeout=5,
+                                              headers={"User-Agent": "AI-News-Aggregator/1.0"})
+                            if r.url and "news.google.com" not in r.url:
+                                link = r.url
+                        except Exception:
+                            pass  # keep original link if resolve fails
 
                 headlines.append({
                     "title": display_title,
