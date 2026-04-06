@@ -910,7 +910,7 @@ def render_page(sections, headlines, display_date, filename, calendars,
 
     # Copy static assets to output if missing
     import shutil
-    for asset in ("logo.png", "logo-sm.png", "logo-email.png", "team.html",
+    for asset in ("logo.png", "logo-sm.png", "logo-email.png", "logo-email.webp", "team.html",
                    "team-marvin.jpg", "team-oreo.jpg", "team-papato.jpg",
                    "team-bella.jpg", "team-panda.jpg", "team-choco.jpg",
                    "kill-bill.mp3", "marvin-motivation.mp4",
