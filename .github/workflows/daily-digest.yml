@@ -35,15 +35,52 @@ jobs:
         run: python aggregate.py
 
       - name: Send email digest
+        id: send
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
         run: python send_digest.py
+        continue-on-error: true
 
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: npx wrangler pages deploy output --project-name=newsmarvin
+
+      - name: Check send result
+        if: steps.send.outcome == 'failure'
+        run: echo "Email sending failed - retry scheduled in 1 hour"
+
+    outputs:
+      send_failed: ${{ steps.send.outcome == 'failure' }}
+
+  retry-send:
+    needs: build-and-send
+    if: needs.build-and-send.outputs.send_failed == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait 1 hour before retry
+        run: sleep 3600
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Retry send email digest
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
+        run: python send_digest.py

@@ -208,6 +208,10 @@ Your AI news, served raw &middot; {display_date} &middot; {total_headlines} head
 # Send via Resend
 # ---------------------------------------------------------------------------
 
+SEND_MAX_RETRIES = 3
+SEND_RETRY_DELAY = 30  # seconds between retries
+
+
 def send_emails(subscribers, subject, text_body, html_body):
     """Send digest to all subscribers using Resend batch API."""
     if not RESEND_API_KEY:
@@ -218,6 +222,7 @@ def send_emails(subscribers, subject, text_body, html_body):
 
     for i in range(0, len(subscribers), BATCH_SIZE):
         batch = subscribers[i:i + BATCH_SIZE]
+        batch_num = i // BATCH_SIZE + 1
 
         emails = []
         for email in batch:
@@ -230,20 +235,26 @@ def send_emails(subscribers, subject, text_body, html_body):
                 "html": html_body.replace("%%UNSUB_URL%%", unsub_url),
             })
 
-        resp = requests.post(
-            "https://api.resend.com/emails/batch",
-            headers={
-                "Authorization": f"Bearer {RESEND_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json=emails,
-        )
+        for attempt in range(1, SEND_MAX_RETRIES + 1):
+            resp = requests.post(
+                "https://api.resend.com/emails/batch",
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json=emails,
+            )
 
-        if resp.status_code == 200:
-            total_sent += len(batch)
-            print(f"  Sent batch {i // BATCH_SIZE + 1}: {len(batch)} emails")
-        else:
-            print(f"  ERROR batch {i // BATCH_SIZE + 1}: {resp.status_code} {resp.text}")
+            if resp.status_code == 200:
+                total_sent += len(batch)
+                print(f"  Sent batch {batch_num}: {len(batch)} emails")
+                break
+            else:
+                print(f"  ERROR batch {batch_num} (attempt {attempt}/{SEND_MAX_RETRIES}): {resp.status_code} {resp.text}")
+                if attempt < SEND_MAX_RETRIES:
+                    import time
+                    print(f"  Retrying in {SEND_RETRY_DELAY}s...")
+                    time.sleep(SEND_RETRY_DELAY)
 
     return total_sent
 
@@ -302,6 +313,9 @@ def main():
     print("\nSending...")
     sent = send_emails(subscribers, subject, text_body, html_body)
     print(f"\nDone. Sent to {sent}/{len(subscribers)} subscribers.\n")
+
+    if sent == 0 and len(subscribers) > 0:
+        sys.exit(2)  # signal failure for workflow retry
 
 
 if __name__ == "__main__":
