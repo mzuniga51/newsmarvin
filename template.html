@@ -98,6 +98,22 @@ header .meta {
 .es-banner-text {
   flex: 1;
 }
+.es-banner-sub {
+  font-weight: 400;
+  opacity: 0.65;
+  font-size: 11px;
+  margin-left: 2px;
+}
+.gt-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.gt-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
 .es-banner-arrow {
   font-size: 16px;
   color: #826eb4;
@@ -595,7 +611,15 @@ footer {
       <rect width="6" height="2" y="1" fill="#F1BF00"/>
     </svg>
   </span>
-  <span class="es-banner-text">Ahora también en Español</span>
+  <span class="es-banner-text">Ahora también en Español<span class="es-banner-sub"> · traducido por Google</span></span>
+  <span class="gt-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="14" height="14" rx="2" fill="#4285F4"/>
+      <text x="7" y="11" font-family="Arial,Helvetica,sans-serif" font-size="10" fill="#fff" text-anchor="middle" font-weight="700">文</text>
+      <rect x="9" y="9" width="14" height="14" rx="2" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+      <text x="16" y="20" font-family="Arial,Helvetica,sans-serif" font-size="10" fill="#4285F4" text-anchor="middle" font-weight="700">A</text>
+    </svg>
+  </span>
   <span class="es-banner-arrow" aria-hidden="true">→</span>
 </a>
 
