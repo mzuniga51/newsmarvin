@@ -480,6 +480,30 @@ footer {
 .marvin-form {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.marvin-lang {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  order: 2;
+  color: rgba(255,255,255,0.85);
+  font-family: Verdana, Geneva, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  padding: 2px 0;
+  justify-content: center;
+}
+.marvin-lang label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+.marvin-lang input[type="radio"] {
+  accent-color: #fff;
+  margin: 0;
 }
 .marvin-form input[type="email"] {
   font-family: Verdana, Geneva, sans-serif;
@@ -632,6 +656,10 @@ footer {
       <div class="marvin-says">Marvin says<br><span>subscribe</span></div>
       <form id="digest-form" class="marvin-form" onsubmit="return submitDigest(event)">
         <input type="email" id="digest-email" placeholder="email" required>
+        <div class="marvin-lang">
+          <label><input type="radio" name="lang" value="en" checked> EN</label>
+          <label><input type="radio" name="lang" value="es"> ES</label>
+        </div>
         <button type="submit">go</button>
       </form>
       <div id="digest-msg" class="marvin-msg" style="display:none;"></div>
@@ -881,24 +909,41 @@ footer {
   }
 })();
 
+function setMarvinSays(lead, sub) {
+  var el = document.querySelector('.marvin-says');
+  if (!el) return;
+  el.textContent = '';
+  el.appendChild(document.createTextNode(lead));
+  el.appendChild(document.createElement('br'));
+  var span = document.createElement('span');
+  span.textContent = sub;
+  el.appendChild(span);
+}
+
 function submitDigest(e) {
   e.preventDefault();
   var email = document.getElementById('digest-email').value;
   var form = document.getElementById('digest-form');
   var msg = document.getElementById('digest-msg');
+  var langInput = document.querySelector('input[name="lang"]:checked');
+  var lang = langInput ? langInput.value : 'en';
+  var isEs = (lang === 'es');
   fetch('/api/subscribe', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({email: email})
+    body: JSON.stringify({email: email, lang: lang})
   }).then(function(r) { return r.json(); }).then(function(data) {
     if (data.ok) {
       form.style.display = 'none';
       msg.style.display = '';
-      msg.textContent = 'subscribed ✓';
+      msg.textContent = isEs ? 'suscrito \u2713' : 'subscribed \u2713';
       msg.style.color = '#826eb4';
       msg.style.fontWeight = 'bold';
-      var says = document.querySelector('.marvin-says');
-      if (says) { says.innerHTML = 'Marvin says<br><span>see you at 6am</span>'; }
+      if (isEs) {
+        setMarvinSays('Marvin dice', 'nos vemos a las 6am');
+      } else {
+        setMarvinSays('Marvin says', 'see you at 6am');
+      }
     } else {
       msg.style.display = '';
       msg.textContent = data.error || 'error';

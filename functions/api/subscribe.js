@@ -8,7 +8,7 @@ export async function onRequestPost(context) {
   };
 
   try {
-    const { email } = await request.json();
+    const { email, lang } = await request.json();
 
     if (!email || !email.includes("@") || !email.includes(".")) {
       return Response.json({ ok: false, error: "invalid email" }, {
@@ -18,10 +18,12 @@ export async function onRequestPost(context) {
     }
 
     const normalized = email.trim().toLowerCase();
+    const record = { subscribed_at: new Date().toISOString() };
+    if (lang === "es") {
+      record.lang = "es";
+    }
 
-    await env.NEWSMARVIN_SUBSCRIBERS.put(normalized, JSON.stringify({
-      subscribed_at: new Date().toISOString(),
-    }));
+    await env.NEWSMARVIN_SUBSCRIBERS.put(normalized, JSON.stringify(record));
 
     return Response.json({ ok: true }, { headers: corsHeaders });
   } catch (e) {
