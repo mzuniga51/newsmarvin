@@ -233,6 +233,8 @@ def build_email(sections, today_str, total_headlines, total_sources, subscriber_
             "headlines": "titulares",
             "sources": "fuentes",
             "unsubscribe": "Cancelar suscripción",
+            "switch_label": "Read in English",
+            "switch_target_lang": "en",
             "html_lang": "es",
         }
     else:
@@ -243,6 +245,8 @@ def build_email(sections, today_str, total_headlines, total_sources, subscriber_
             "headlines": "headlines",
             "sources": "sources",
             "unsubscribe": "Unsubscribe",
+            "switch_label": "Cambiar a Español",
+            "switch_target_lang": "es",
             "html_lang": "en",
         }
 
@@ -266,6 +270,7 @@ def build_email(sections, today_str, total_headlines, total_sources, subscriber_
     text_lines.append("—")
     text_lines.append(f"newsmarvin.com - {L['tagline']}")
     text_lines.append("")
+    text_lines.append(f"{L['switch_label']}: %%LANG_SWITCH_URL%%")
     text_lines.append(f"{L['unsubscribe']}: %%UNSUB_URL%%")
     text_body = "\n".join(text_lines)
 
@@ -389,7 +394,8 @@ def build_email(sections, today_str, total_headlines, total_sources, subscriber_
 <a href="https://newsmarvin.com" style="color:#826eb4;text-decoration:none;">newsmarvin.com</a>
  &middot; {datetime.now(CR_TZ).strftime("%Y-%m-%d %H:%M CST")}
 <div style="margin-top:16px;">
-<a href="%%UNSUB_URL%%" style="display:inline-block;padding:10px 28px;background:#826eb4;color:#fff;text-decoration:none;border-radius:4px;font-size:13px;font-weight:bold;">{L['unsubscribe']}</a>
+<a href="%%LANG_SWITCH_URL%%" style="display:inline-block;padding:10px 22px;background:#fff;color:#826eb4;text-decoration:none;border:2px solid #826eb4;border-radius:4px;font-size:13px;font-weight:bold;margin-right:6px;">{L['switch_label']}</a>
+<a href="%%UNSUB_URL%%" style="display:inline-block;padding:10px 22px;background:#826eb4;color:#fff;text-decoration:none;border:2px solid #826eb4;border-radius:4px;font-size:13px;font-weight:bold;">{L['unsubscribe']}</a>
 </div>
 </div>
 
@@ -397,7 +403,7 @@ def build_email(sections, today_str, total_headlines, total_sources, subscriber_
 <!--[if mso]></td></tr></table><![endif]-->
 </body></html>"""
 
-    return subject, text_body, html_body
+    return subject, text_body, html_body, L["switch_target_lang"]
 
 
 # ---------------------------------------------------------------------------
@@ -408,7 +414,7 @@ SEND_MAX_RETRIES = 3
 SEND_RETRY_DELAY = 30  # seconds between retries
 
 
-def send_emails(subscribers, subject, text_body, html_body):
+def send_emails(subscribers, subject, text_body, html_body, switch_target_lang="es"):
     """Send digest to all subscribers using Resend batch API."""
     if not RESEND_API_KEY:
         print("ERROR: Missing RESEND_API_KEY")
@@ -423,12 +429,13 @@ def send_emails(subscribers, subject, text_body, html_body):
         emails = []
         for email in batch:
             unsub_url = f"https://newsmarvin.com/api/unsubscribe?email={email}"
+            switch_url = f"https://newsmarvin.com/api/set-language?email={email}&lang={switch_target_lang}"
             emails.append({
                 "from": FROM_EMAIL,
                 "to": [email],
                 "subject": subject,
-                "text": text_body.replace("%%UNSUB_URL%%", unsub_url),
-                "html": html_body.replace("%%UNSUB_URL%%", unsub_url),
+                "text": text_body.replace("%%UNSUB_URL%%", unsub_url).replace("%%LANG_SWITCH_URL%%", switch_url),
+                "html": html_body.replace("%%UNSUB_URL%%", unsub_url).replace("%%LANG_SWITCH_URL%%", switch_url),
             })
 
         for attempt in range(1, SEND_MAX_RETRIES + 1):
@@ -525,17 +532,17 @@ def main():
 
     if en_subs:
         print("\nBuilding English digest...")
-        subject, text_body, html_body = build_email(sections, today_str, len(recent_hl), len(FEEDS), len(subscribers), lang="en")
+        subject, text_body, html_body, switch_lang = build_email(sections, today_str, len(recent_hl), len(FEEDS), len(subscribers), lang="en")
         print(f"  Subject: {subject}")
         print(f"Sending to {len(en_subs)} EN subscriber(s)...")
-        total_sent += send_emails(en_subs, subject, text_body, html_body)
+        total_sent += send_emails(en_subs, subject, text_body, html_body, switch_target_lang=switch_lang)
 
     if es_subs:
         print("\nBuilding Spanish digest (translating headlines + categories)...")
-        subject, text_body, html_body = build_email(sections, today_str, len(recent_hl), len(FEEDS), len(subscribers), lang="es")
+        subject, text_body, html_body, switch_lang = build_email(sections, today_str, len(recent_hl), len(FEEDS), len(subscribers), lang="es")
         print(f"  Subject: {subject}")
         print(f"Sending to {len(es_subs)} ES subscriber(s)...")
-        total_sent += send_emails(es_subs, subject, text_body, html_body)
+        total_sent += send_emails(es_subs, subject, text_body, html_body, switch_target_lang=switch_lang)
 
     print(f"\nDone. Sent to {total_sent}/{len(subscribers)} subscribers.\n")
 
