@@ -20,7 +20,6 @@ FEEDS = {
     "Google DeepMind": "https://deepmind.google/blog/rss.xml",
     "Google Research": "https://research.google/blog/rss/",
     "NVIDIA Blog": "https://blogs.nvidia.com/feed/",
-    "Meta Research": "https://research.facebook.com/feed/",
     "Microsoft Research": "https://www.microsoft.com/en-us/research/feed/",
     "Apple ML Research": "https://machinelearning.apple.com/rss.xml",
     "Hugging Face": "https://huggingface.co/blog/feed.xml",
@@ -111,7 +110,7 @@ TIER2_SOURCES = {
     "Guardian Tech", "Fortune",
     "Bloomberg Tech", "CNBC Tech",
     # Mixed-content tech sites
-    "Meta Research", "ZDNet AI", "MIT Tech Review", "Ars Technica",
+    "ZDNet AI", "MIT Tech Review", "Ars Technica",
     "Google Research", "Apple ML Research", "Databricks",
     # Defense & consulting (publish mostly non-AI)
     "McKinsey", "Palantir", "Shield AI",
@@ -682,7 +681,7 @@ GOOGLE_NEWS_BLOCKED_PUBLISHERS = {
     "1851 franchise", "fox news", "tradingview",
     "govtech", "tipranks", "investmentnews",
     # SEO / content farms
-    "pymnts", "mashable",
+    "pymnts", "mashable", "detroit bureau",
     # Paywalled / excluded
     "times of india", "wired",
 }
@@ -699,7 +698,7 @@ RESEARCH_QUALITY_SOURCES = {
     "MIT News AI", "BAIR Blog", "CMU SCS", "Oxford Internet Institute",
     "UW Allen School", "Cambridge CST", "Vector Institute",
     # Company research blogs
-    "Google DeepMind", "Google Research", "Meta Research",
+    "Google DeepMind", "Google Research",
     "Microsoft Research", "Apple ML Research",
     # Scientific journals
     "Nature", "Nature Machine Intelligence", "Science",

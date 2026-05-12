@@ -681,10 +681,10 @@ def fetch_feeds():
                 seen.add(key)
 
                 published = parse_published(entry)
-                if published and published < cutoff:
-                    continue
                 if not published:
-                    published = datetime.now(timezone.utc)
+                    continue
+                if published < cutoff:
+                    continue
 
                 # Pass 2: Keyword classification (may be overridden by LLM)
                 category = categorize(title, desc)
