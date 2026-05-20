@@ -68,7 +68,8 @@ Top-level (absolute paths rooted at `/Users/manuelzuniga/ai/projects/newsmarvin/
 | `static/` | Assets copied into `output/` on render: `logo.png`, `logo-sm.png`, `logo-email.png`, `logo-email.webp`, `team.html`, team photos, `kill-bill.mp3`, `marvin-motivation.mp4`, `ribbon.png`. |
 | `output/` | Generated site. **Gitignored.** Must regenerate before deploy. |
 | `.github/workflows/update-site.yml` | GH Actions cron at 06:00 UTC (midnight CST): aggregate + deploy. No email. |
-| `.github/workflows/daily-digest.yml` | GH Actions cron at 12:00 UTC (06:00 CST): aggregate + send email + deploy + retry-send job 1h later if email failed. |
+| `.github/workflows/daily-digest.yml` | aggregate + send email + deploy + retry-send job 1h later if email failed. Triggered primarily by the `newsmarvin-cron` Worker via `workflow_dispatch`; its own `schedule` (13:37 UTC) is now only a fallback. |
+| `cron-dispatch/` | Standalone Cloudflare **Worker** `newsmarvin-cron` (separate from the Pages project; Pages cannot do cron). Cron Trigger at 12:00 UTC calls GitHub's `workflow_dispatch` API for `daily-digest.yml`. Punctual, unlike GH's `schedule` event. `/health` does a read-only token check. Secret `GITHUB_TOKEN` set via `wrangler secret put`. |
 | `.env` | Local secrets (gitignored). See section 4. |
 | `generate_logo.py`, `logo.png`, `ribbon.png`, `logos/` | One-off asset generation. Not part of the runtime pipeline. |
 | `mempalace.yaml` | mempalace config, unrelated to runtime. |
@@ -88,6 +89,10 @@ All read from process env. Local values live in `.env` (gitignored). Same names 
 | `CF_DNS_TOKEN` | DNS edit token. Not used by the runtime pipeline; kept for manual DNS work. |
 | `KV_NAMESPACE_ID` | `9a4d8965976e4a619e97ce31c7ba842b` - NEWSMARVIN_SUBSCRIBERS KV namespace. |
 | `ANTHROPIC_API_KEY` | Claude Haiku for classify + dedup. If missing or credits depleted, the pipeline warns and falls back to keyword-only classification. Site still builds. |
+| `TRANSLATE_SECRET` | Shared secret for the Google Apps Script translation webhook. Used by `send_digest.py` for the ES digest. If unset, ES headlines ship untranslated (English). |
+| `TRANSLATE_ENDPOINT` | URL of the Apps Script translation webhook. Caps at 100 texts per call; `translate_batch` chunks to respect it. |
+
+The `newsmarvin-cron` Worker has its own secret, `GITHUB_TOKEN` (currently the `mzuniga51` gh OAuth token, `workflow` scope), set via `wrangler secret put GITHUB_TOKEN` from `cron-dispatch/`. It is NOT in `.env` and NOT a GitHub Actions secret - it lives only as a Cloudflare Worker secret.
 
 Never commit `.env`. Secrets must be rotated through both `.env` and the `mzuniga51/newsmarvin` GitHub secrets.
 
@@ -161,7 +166,9 @@ gh workflow run daily-digest.yml -R mzuniga51/newsmarvin
 
 Two automated paths exist:
 
-1. **GitHub Actions** - `update-site.yml` runs at 06:00 UTC (midnight CST) daily, aggregate + deploy only. `daily-digest.yml` runs at 12:00 UTC (06:00 CST), aggregate + email + deploy, with a `retry-send` job that waits 1 hour and retries email if the first send failed. This is the primary mechanism in production.
+1. **GitHub Actions** - `update-site.yml` runs at 06:00 UTC (midnight CST) daily, aggregate + deploy only. `daily-digest.yml` does aggregate + email + deploy, with a `retry-send` job that waits 1 hour and retries email if the first send failed. This is the primary mechanism in production.
+
+   **What triggers `daily-digest.yml`:** the primary trigger is the `newsmarvin-cron` Cloudflare Worker (`cron-dispatch/`), which fires `workflow_dispatch` at 12:00 UTC. GitHub's own `schedule` event was unreliable - it routinely queued the top-of-hour cron 1-3h late - so it was demoted to a fallback at 13:37 UTC (off-peak minute). To prevent the two triggers from double-sending, `send_digest.py` writes a `__last_sent__` KV key (CST date) on each successful send and no-ops if a digest already went out today. `--force` overrides. So whichever trigger fires first sends; the other becomes a no-op. `fetch_subscribers` skips KV keys without `@` so the sentinel is never emailed.
 
 2. **Local `run_daily.sh`** - wraps aggregate + send_digest. **Known bug**: first line is `cd /Users/manuelzuniga/ai/newsmarvin` which does not exist. Should be `/Users/manuelzuniga/ai/projects/newsmarvin`. Fix before wiring to launchd/cron. There is currently no launchd or crontab entry on the MacBook that invokes it; laptop runs are on-demand only.
 
