@@ -1,0 +1,30 @@
+wing: newsmarvin
+rooms:
+- name: output
+  description: Files from output/
+  keywords:
+  - output
+  - output
+- name: logos
+  description: Files from logos/
+  keywords:
+  - logos
+  - logos
+- name: static
+  description: Files from static/
+  keywords:
+  - static
+  - static
+- name: functions
+  description: Files from functions/
+  keywords:
+  - functions
+  - functions
+- name: backend
+  description: Files from api/
+  keywords:
+  - backend
+  - api
+- name: general
+  description: Files that don't fit other rooms
+  keywords: []

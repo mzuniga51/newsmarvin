@@ -14,7 +14,7 @@ For operational details, read `PLAYBOOK.md` in this directory before making chan
 
 ## Style
 
-- No em dashes (-) or en dashes (-). Regular hyphens only. Applies to code, comments, commit messages, UI copy.
+- Voice and writing rules: see `~/.claude/about-me/` (`writing-rules.md` in particular). Em-dash ban and diacritics rules are enforced there, not duplicated here.
 - All display times are Costa Rica CST (UTC-6). `TIMEZONE_OFFSET = -6` in `config.py`.
 
 Everything else - environment variables, deploy sequence, troubleshooting, architecture, file map - is in `PLAYBOOK.md`.

@@ -1,9 +1,13 @@
 name: Daily Digest
 
 on:
+  # Primary trigger is the Cloudflare-cron Worker (cron-dispatch/), which fires
+  # workflow_dispatch punctually at 12:00 UTC. This schedule is only a FALLBACK
+  # in case the Worker ever misses: it runs later and the idempotency guard in
+  # send_digest.py makes it a no-op if the digest already went out today.
   schedule:
-    - cron: '0 12 * * *'  # 12:00 UTC = 6:00 AM CST
-  workflow_dispatch:       # manual trigger for testing
+    - cron: '37 13 * * *'  # 13:37 UTC fallback (off-peak minute to reduce GH queue delay)
+  workflow_dispatch:        # manual trigger + Cloudflare cron dispatcher
 
 jobs:
   build-and-send:
@@ -42,6 +46,7 @@ jobs:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
           TRANSLATE_SECRET: ${{ secrets.TRANSLATE_SECRET }}
+          TRANSLATE_ENDPOINT: ${{ secrets.TRANSLATE_ENDPOINT }}
         run: python send_digest.py
         continue-on-error: true
 
@@ -85,4 +90,5 @@ jobs:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
           TRANSLATE_SECRET: ${{ secrets.TRANSLATE_SECRET }}
+          TRANSLATE_ENDPOINT: ${{ secrets.TRANSLATE_ENDPOINT }}
         run: python send_digest.py

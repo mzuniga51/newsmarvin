@@ -69,13 +69,62 @@ def fetch_subscribers():
             sys.exit(1)
 
         for key in data.get("result", []):
-            emails.append(key["name"])
+            name = key["name"]
+            # Skip sentinel/bookkeeping keys (e.g. __last_sent__); only real
+            # subscriber records contain an "@".
+            if "@" not in name:
+                continue
+            emails.append(name)
 
         cursor = data.get("result_info", {}).get("cursor")
         if not cursor:
             break
 
     return emails
+
+
+# Sentinel KV key recording the date of the last successful digest send.
+# Lets multiple triggers (Cloudflare-cron Worker as primary + GitHub schedule
+# as fallback) coexist without ever double-sending. Has no "@" so it is never
+# treated as a subscriber.
+LAST_SENT_KEY = "__last_sent__"
+
+
+def _kv_value_url(key):
+    return (
+        f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}"
+        f"/storage/kv/namespaces/{KV_NAMESPACE_ID}/values/{key}"
+    )
+
+
+def get_last_sent_date():
+    """Return the CST date string of the last successful send, or '' if unknown."""
+    headers = {"Authorization": f"Bearer {CF_API_TOKEN}"}
+    try:
+        resp = requests.get(_kv_value_url(LAST_SENT_KEY), headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return ""
+        return json.loads(resp.text).get("date", "")
+    except Exception:
+        return ""
+
+
+def mark_sent_today(date_str):
+    """Record date_str as the last successful send date in KV."""
+    headers = {"Authorization": f"Bearer {CF_API_TOKEN}"}
+    payload = json.dumps({"date": date_str, "at": datetime.now(timezone.utc).isoformat()})
+    try:
+        # CF KV single-write stores the raw request body as the value.
+        resp = requests.put(
+            _kv_value_url(LAST_SENT_KEY),
+            headers={**headers, "Content-Type": "text/plain"},
+            data=payload.encode("utf-8"),
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            print(f"  WARNING: could not record last-sent marker: {resp.status_code} {resp.text[:200]}")
+    except Exception as e:
+        print(f"  WARNING: could not record last-sent marker: {e}")
 
 
 def fetch_subscriber_lang(email):
@@ -93,29 +142,37 @@ def fetch_subscriber_lang(email):
 
 
 # ---------------------------------------------------------------------------
-# Translation (Cloudflare Workers AI via Pages Function)
+# Translation (Google Apps Script webhook using LanguageApp.translate)
 # ---------------------------------------------------------------------------
 
 TRANSLATE_SECRET = os.environ.get("TRANSLATE_SECRET", "")
-TRANSLATE_ENDPOINT = "https://newsmarvin.com/api/translate"
+TRANSLATE_ENDPOINT = os.environ.get(
+    "TRANSLATE_ENDPOINT",
+    "https://newsmarvin.com/api/translate",  # legacy Workers AI fallback
+)
 
 
-def translate_batch(texts, target_lang="spanish"):
-    """Translate a list of strings via Workers AI. Returns list same length; '' for any failed item."""
-    if not texts:
-        return []
-    if not TRANSLATE_SECRET:
-        print("  WARNING: TRANSLATE_SECRET not set; skipping translation")
-        return list(texts)
+# The Apps Script webhook caps each call at 100 texts. Stay under it.
+TRANSLATE_CHUNK = 100
+
+
+def _translate_chunk(texts, target_lang):
+    """Translate up to TRANSLATE_CHUNK strings in a single webhook call.
+
+    Returns a list the same length as input, falling back to the original
+    English text on any failure so the digest never ships blank headlines.
+    """
     try:
         resp = requests.post(
             TRANSLATE_ENDPOINT,
-            headers={
-                "X-Translate-Key": TRANSLATE_SECRET,
-                "Content-Type": "application/json",
+            json={
+                "key": TRANSLATE_SECRET,
+                "texts": texts,
+                "source_lang": "en",
+                "target_lang": target_lang,
             },
-            json={"texts": texts, "source_lang": "english", "target_lang": target_lang},
             timeout=120,
+            allow_redirects=True,
         )
         if resp.status_code != 200:
             print(f"  WARNING: translate {resp.status_code}: {resp.text[:200]}")
@@ -126,6 +183,26 @@ def translate_batch(texts, target_lang="spanish"):
     except Exception as e:
         print(f"  WARNING: translate failed: {e}")
         return list(texts)
+
+
+def translate_batch(texts, target_lang="es"):
+    """Translate a list of strings via the Apps Script webhook (Google Translate).
+
+    Splits the input into chunks of TRANSLATE_CHUNK to respect the webhook's
+    per-call limit, then concatenates. Returns a list the same length as input;
+    any chunk that fails falls back to its original English text.
+    """
+    if not texts:
+        return []
+    if not TRANSLATE_SECRET:
+        print("  WARNING: TRANSLATE_SECRET not set; skipping translation")
+        return list(texts)
+
+    out = []
+    for i in range(0, len(texts), TRANSLATE_CHUNK):
+        chunk = texts[i:i + TRANSLATE_CHUNK]
+        out.extend(_translate_chunk(chunk, target_lang))
+    return out
 
 
 # Domains that reject Google Translate's proxy fetcher (usually because of
@@ -471,6 +548,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", help="Send only to this email address (dev)")
     parser.add_argument("--force-lang", choices=["en", "es"], help="Override the test recipient's lang preference")
+    parser.add_argument("--force", action="store_true", help="Send even if a digest already went out today (bypass the idempotency guard)")
     args = parser.parse_args()
 
     print("\n=== NewsMarvin Daily Digest ===\n")
@@ -503,6 +581,16 @@ def main():
     today_str = now.strftime("%Y-%m-%d")
 
     print(f"\nLast 24h: {len(recent_hl)} headlines in {len(sections)} sections")
+
+    # Idempotency guard: skip if a digest already went out today. This lets the
+    # Cloudflare-cron Worker (primary, punctual) and the GitHub schedule
+    # (fallback, later) both stay armed without ever double-sending. Test sends
+    # and --force bypass it.
+    if not args.test and not args.force:
+        already = get_last_sent_date()
+        if already == today_str:
+            print(f"Digest already sent today ({today_str}). Skipping. Use --force to override.")
+            sys.exit(0)
 
     # Fetch subscribers
     if args.test:
@@ -548,6 +636,10 @@ def main():
 
     if total_sent == 0 and len(subscribers) > 0:
         sys.exit(2)  # signal failure for workflow retry
+
+    # Record the send so a later fallback trigger doesn't resend today.
+    if total_sent > 0 and not args.test:
+        mark_sent_today(today_str)
 
 
 if __name__ == "__main__":

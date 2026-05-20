@@ -58,26 +58,18 @@ header .meta {
   color: rgba(255,255,255,0.7);
   font-size: 11px;
 }
-.es-banner {
+.lang-banner {
   display: flex;
   align-items: center;
   gap: 12px;
   background: linear-gradient(90deg, #f4ebcc 0%, #ecdfb0 100%);
   color: #4a3d6b;
-  text-decoration: none;
   padding: 9px 16px;
   font-family: "Inter", sans-serif;
   font-weight: 600;
   font-size: 13px;
   letter-spacing: 0.02em;
   border-bottom: 2px solid #826eb4;
-  transition: background 0.15s ease;
-}
-.es-banner:hover {
-  background: linear-gradient(90deg, #ecdfb0 0%, #e2d399 100%);
-}
-.es-banner:hover .es-banner-arrow {
-  transform: translateX(4px);
 }
 .es-flag {
   display: inline-block;
@@ -95,10 +87,10 @@ header .meta {
   height: 100%;
   display: block;
 }
-.es-banner-text {
+.lang-banner-text {
   flex: 1;
 }
-.es-banner-sub {
+.lang-banner-sub {
   font-weight: 400;
   opacity: 0.65;
   font-size: 11px;
@@ -114,10 +106,30 @@ header .meta {
   height: 18px;
   display: block;
 }
-.es-banner-arrow {
-  font-size: 16px;
-  color: #826eb4;
-  transition: transform 0.2s ease;
+.lang-toggle {
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.5);
+  border-radius: 4px;
+  padding: 2px;
+}
+.lang-btn {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  color: #4a3d6b;
+  border-radius: 3px;
+  transition: background 0.15s ease;
+}
+.lang-btn:hover {
+  background: rgba(130,110,180,0.15);
+}
+.lang-btn.active {
+  background: #826eb4;
+  color: #fff;
 }
 
 /* Marvin */
@@ -590,8 +602,11 @@ footer {
   header .inner { padding: 0 8px; }
   header .tagline { display: none; }
   header .meta { display: none; }
-  .es-banner { padding: 8px 12px; font-size: 13px; gap: 10px; }
+  .lang-banner { padding: 8px 12px; font-size: 12px; gap: 8px; flex-wrap: wrap; }
   .es-flag { width: 24px; height: 16px; }
+  .lang-banner-sub { display: none; }
+  .gt-icon { display: none; }
+  .lang-btn { padding: 3px 8px; font-size: 11px; }
   /* Compact headlines */
   .hl .src { display: none; }
   .hl .time { display: none; }
@@ -628,14 +643,14 @@ footer {
   </div>
 </header>
 
-<a class="es-banner" href="https://translate.google.com/translate?sl=auto&amp;tl=es&amp;u=https://newsmarvin.com{% if canonical_path %}/{{ canonical_path }}{% endif %}">
+<div class="lang-banner">
   <span class="es-flag" aria-hidden="true">
     <svg viewBox="0 0 6 4" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
       <rect width="6" height="4" fill="#AA151B"/>
       <rect width="6" height="2" y="1" fill="#F1BF00"/>
     </svg>
   </span>
-  <span class="es-banner-text">Ahora también en Español<span class="es-banner-sub"> · traducido por Google</span></span>
+  <span class="lang-banner-text">Ahora también en Español<span class="lang-banner-sub"> · traducido por Google</span></span>
   <span class="gt-icon" aria-hidden="true">
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <rect x="0" y="0" width="14" height="14" rx="2" fill="#4285F4"/>
@@ -644,8 +659,11 @@ footer {
       <text x="16" y="20" font-family="Arial,Helvetica,sans-serif" font-size="10" fill="#4285F4" text-anchor="middle" font-weight="700">A</text>
     </svg>
   </span>
-  <span class="es-banner-arrow" aria-hidden="true">→</span>
-</a>
+  <div class="lang-toggle notranslate" translate="no">
+    <a class="lang-btn active" href="https://newsmarvin.com/{% if canonical_path %}{{ canonical_path }}{% endif %}" target="_top" hreflang="en">English</a>
+    <a class="lang-btn" href="https://translate.google.com/translate?sl=auto&amp;tl=es&amp;u=https://newsmarvin.com{% if canonical_path %}/{{ canonical_path }}{% endif %}" hreflang="es">Español</a>
+  </div>
+</div>
 
 <div class="page">
 
@@ -769,6 +787,23 @@ footer {
 </footer>
 
 <script>
+(function() {
+  try {
+    if (window.top !== window.self) {
+      var btns = document.querySelectorAll('.lang-btn');
+      if (btns.length === 2) {
+        btns[0].classList.remove('active');
+        btns[1].classList.add('active');
+      }
+    }
+  } catch (e) {
+    var btns2 = document.querySelectorAll('.lang-btn');
+    if (btns2.length === 2) {
+      btns2[0].classList.remove('active');
+      btns2[1].classList.add('active');
+    }
+  }
+})();
 (function() {
   var allData = {{ all_headlines_json }};
   var active = {};

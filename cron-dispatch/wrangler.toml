@@ -1,0 +1,22 @@
+# Newsmarvin cron dispatcher
+# A tiny Worker whose only job is to fire the daily-digest GitHub Actions
+# workflow on time. Cloudflare Cron Triggers are punctual and workflow_dispatch
+# runs start in seconds, so this sidesteps GitHub's flaky `schedule` event
+# (which routinely queued our top-of-hour cron 1-3h late).
+#
+# Deploy:  npx wrangler deploy
+# Secret:  npx wrangler secret put GITHUB_TOKEN   (fine-grained PAT, Actions: RW)
+name = "newsmarvin-cron"
+main = "src/index.js"
+compatibility_date = "2025-05-01"
+workers_dev = true  # exposes /health for a read-only token check
+
+# 12:00 UTC = 06:00 CST. This is the primary, punctual trigger.
+[triggers]
+crons = ["0 12 * * *"]
+
+[vars]
+GITHUB_OWNER = "mzuniga51"
+GITHUB_REPO = "newsmarvin"
+GITHUB_WORKFLOW = "daily-digest.yml"
+GITHUB_REF = "main"
